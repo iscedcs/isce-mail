@@ -1,6 +1,6 @@
 'use server';
 
-import { ITemplate, sendTwoFactorTokenEmail } from '@/lib/mail';
+import { ITemplate, sendEmail } from "@/lib/mail";
 
 export const sendMailAction = async (formData: {
 	subject: string;
@@ -13,13 +13,13 @@ export const sendMailAction = async (formData: {
 		console.log({ formData });
 		await Promise.all(
 			emailArray.map((a: string) => {
-				sendTwoFactorTokenEmail(
-					a.trim(),
-					'123456',
-					formData.subject,
-					formData.message,
-					formData.template as ITemplate
-				);
+				sendEmail(
+          a.trim(),
+          "123456",
+          formData.subject,
+          formData.message,
+          formData.template as ITemplate
+        );
 				console.log({ a });
 			})
 		);

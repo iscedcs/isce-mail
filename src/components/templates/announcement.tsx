@@ -1,116 +1,108 @@
 import {
-	Body,
-	Container,
-	Head,
-	Heading,
-	Html,
-	Img,
-	Link,
-	Preview,
-	Text,
-} from '@react-email/components';
-import * as React from 'react';
+  Body,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Section,
+  Img,
+  Link,
+  Preview,
+  Text,
+} from "@react-email/components";
+import * as React from "react";
 
 interface AnnouncementEmailProps {
-	loginCode?: string;
+  loginCode?: string;
+  message: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
-	? `https://${process.env.VERCEL_URL}`
-	: '';
+  ? `https://${process.env.VERCEL_URL}`
+  : "";
 
-export const AnnouncementEmail = ({ loginCode }: AnnouncementEmailProps) => (
-	<Html>
-		<Head />
-		<Preview>Announcement Email Template</Preview>
-		<Body style={main}>
-			<Container style={container}>
-				<Heading style={h1}>Login</Heading>
-				<Link
-					href='https://notion.so'
-					target='_blank'
-					style={{
-						...link,
-						display: 'block',
-						marginBottom: '16px',
-					}}
-				>
-					Click here to log in with this magic link
-				</Link>
-				<Text style={{ ...text, marginBottom: '14px' }}>
-					Or, copy and paste this temporary login code:
-				</Text>
-				<code style={code}>{loginCode}</code>
-				<Text
-					style={{
-						...text,
-						color: '#ababab',
-						marginTop: '14px',
-						marginBottom: '16px',
-					}}
-				>
-					If you didn&apos;t try to login, you can safely ignore
-					this email.
-				</Text>
-				<Text
-					style={{
-						...text,
-						color: '#ababab',
-						marginTop: '12px',
-						marginBottom: '38px',
-					}}
-				>
-					Hint: You can set a permanent password in Settings &
-					members → My account.
-				</Text>
-				<Img
-					src={`${baseUrl}/static/notion-logo.png`}
-					width='32'
-					height='32'
-					alt="Notion's Logo"
-				/>
-				<Text style={footer}>
-					<Link
-						href='https://notion.so'
-						target='_blank'
-						style={{ ...link, color: '#898989' }}
-					>
-						Notion.so
-					</Link>
-					, the all-in-one-workspace
-					<br />
-					for your notes, tasks, wikis, and databases.
-				</Text>
-			</Container>
-		</Body>
-	</Html>
+export const AnnouncementEmail = ({
+  message,
+  loginCode,
+}: AnnouncementEmailProps) => (
+  <Html>
+    <Head />
+    <Preview>Announcement Email Template</Preview>
+    <Body className="bg-white">
+      <Container className="px-[12px] my-[20px] mx-auto flex justify-center">
+        <Img
+          className="mx-auto "
+          src={`${baseUrl}/static/isce.png`}
+          width="100"
+          height="120"
+        />
+        <Heading className="text-center font-bold">Announcement Email</Heading>
+        <Section>mfvifjvifjvifvjf</Section>
+        <Link
+          href="https://notion.so"
+          target="_blank"
+          style={{
+            ...link,
+            display: "block",
+            marginBottom: "16px",
+          }}
+        >
+          Click here to log in with this magic link
+        </Link>
+        <Text style={{ ...text, marginBottom: "14px" }}>
+          Or, copy and paste this temporary login code:
+        </Text>
+        <Text>{message}</Text>
+        <Text
+          style={{
+            ...text,
+            color: "#ababab",
+            marginTop: "14px",
+            marginBottom: "16px",
+          }}
+        >
+          If you didn&apos;t try to login, you can safely ignore this email.
+        </Text>
+        <Text
+          style={{
+            ...text,
+            color: "#ababab",
+            marginTop: "12px",
+            marginBottom: "38px",
+          }}
+        >
+          Hint: You can set a permanent password in Settings & members → My
+          account.
+        </Text>
+        <Img
+          src={`${baseUrl}/static/notion-logo.png`}
+          width="32"
+          height="32"
+          alt="Notion's Logo"
+        />
+        <Text style={footer}>
+          <Link
+            href="https://notion.so"
+            target="_blank"
+            style={{ ...link, color: "#898989" }}
+          >
+            Notion.so
+          </Link>
+          , the all-in-one-workspace
+          <br />
+          for your notes, tasks, wikis, and databases.
+        </Text>
+      </Container>
+    </Body>
+  </Html>
 );
 
 AnnouncementEmail.PreviewProps = {
-	loginCode: 'sparo-ndigo-amurt-secan',
+  loginCode: "sparo-ndigo-amurt-secan",
 } as AnnouncementEmailProps;
 
 export default AnnouncementEmail;
 
-const main = {
-	backgroundColor: '#ffffff',
-};
-
-const container = {
-	paddingLeft: '12px',
-	paddingRight: '12px',
-	margin: '0 auto',
-};
-
-const h1 = {
-	color: '#333',
-	fontFamily:
-		"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
-	fontSize: '24px',
-	fontWeight: 'bold',
-	margin: '40px 0',
-	padding: '0',
-};
 
 const link = {
 	color: '#2754C5',
