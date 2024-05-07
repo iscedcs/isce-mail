@@ -31,9 +31,9 @@ const PtAnnouncementMail = () => {
               />
               <Img src={`${baseUrl}/static/thanks.png`} />
             </Section>
-            <Section className="text-[#333] ">
-              <Text>Hello, Ayobami</Text>
-              <Text>Message body</Text>
+            <Section className="text-[#333]">
+              <Text className=" xl:px-0 lg:px-0 px-[20px]">Hello, Ayobami</Text>
+              <Text className=" xl:px-0 lg:px-0 px-[20px]">Message body</Text>
             </Section>
             <Section className="flex justify-center">
               <Button
@@ -52,12 +52,14 @@ const PtAnnouncementMail = () => {
             </Link>
             <Hr className="mt-[30px]" />
             <Section className="text-center text-[#333333] flex justify-center ">
-              <Text>Copyright © 2024 PalmTechnIQ, All Rights Reserved.</Text>
-              <Text>
+              <Text className=" xl:px-0 lg:px-0 px-[20px]">
+                Copyright © 2024 PalmTechnIQ, All Rights Reserved.
+              </Text>
+              <Text className=" xl:px-0 lg:px-0 px-[20px]">
                 You are recieving this mail because you opted in via our
                 website.
               </Text>
-              <Text>
+              <Text className=" xl:px-0 lg:px-0 px-[20px]">
                 Mailing Address: Somewhere in Lagos, In a Town, Nigeria.
               </Text>
             </Section>
