@@ -1,7 +1,13 @@
-import AnnouncementEmail from "@/components/templates/announcement";
-import PtAnnouncementMail from "@/components/templates/palmtechniq/pt-announcement";
+import PtPromotionMail from "../../../emails/templates/palmtechniq/promotion";
 import React from "react";
 
 export default function SamplePage() {
-  return <PtAnnouncementMail />;
+  return (
+    <PtPromotionMail
+      image="static/dummy-images/image-5.png"
+      link="isce.app"
+      message="a message that is very long"
+      headerText="lol"
+    />
+  );
 }

@@ -12,11 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { sendMailAction } from "@/_action/send-mail";
-import { LoaderCircle } from "lucide-react";
-import { IBasis } from "@/lib/mail";
+import { AlertCircleIcon, LoaderCircle } from "lucide-react";
+import { IBasis } from "@/lib/mail-action/promotion/mail";
+import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface IPromotionsForm {
   subject: string;
+  headerText: string;
   basis: IBasis;
   message: string;
   image: string;
@@ -27,6 +30,7 @@ export interface IPromotionsForm {
 export default function PromotionForm() {
   const [form, setForm] = useState<IPromotionsForm>({
     subject: "",
+    headerText: "",
     basis: "ISCE",
     message: "",
     image: "",
@@ -81,7 +85,19 @@ export default function PromotionForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="basis">Basis</Label>
+          <Label className="flex gap-1.5 items-center" htmlFor="basis">
+            Basis{" "}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
+                </TooltipTrigger>
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                  <p>Select the base for the email.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
           <Select
             defaultValue={form.basis}
             required
@@ -118,7 +134,19 @@ export default function PromotionForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="link">Promotion Link</Label>
+          <Label className="flex gap-1.5 items-center" htmlFor="link">
+            Promotion Link{" "}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
+                </TooltipTrigger>
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                  <p>Enter the link that directs users to what you are promoting.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
           <Input
             onChange={(e) => {
               setForm({
@@ -131,6 +159,33 @@ export default function PromotionForm() {
             placeholder="Enter the link for promotion"
             required
             defaultValue={form.link}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="flex gap-1.5 items-center" htmlFor="headerText">
+            Header Line{" "}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
+                </TooltipTrigger>
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                  <p>Create a general description of the email content.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            onChange={(e) => {
+              setForm({
+                ...form,
+                headerText: e.target.value,
+              });
+            }}
+            id="headerText"
+            placeholder="Enter the header of your email"
+            required
+            defaultValue={form.headerText}
           />
         </div>
         <div className="space-y-2">
@@ -150,7 +205,19 @@ export default function PromotionForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="emails">Email List</Label>
+          <Label className="flex gap-1.5 items-center" htmlFor="emails">
+            Email(s){" "}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
+                </TooltipTrigger>
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                  <p>Multiple emails are seperated by a comma.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
           <Textarea
             defaultValue={form.emails}
             onChange={(e) => {

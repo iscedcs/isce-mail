@@ -1,6 +1,7 @@
-import { Resend } from 'resend';
-import PromotionalEmail from "@/components/templates/isce/promotion";
-import PtPromotionMail from "@/components/templates/palmtechniq/pt-promotion";
+import { Resend } from "resend";
+import ISCEPromotionMail from "../../../../emails/templates/isce/promotion";
+import PtPromotionMail from "../../../../emails/templates/palmtechniq/promotion";
+import { HeadManagerContext } from "next/dist/shared/lib/head-manager-context.shared-runtime";
 
 export const revalidate = 0;
 
@@ -13,24 +14,30 @@ export const sendEmail = async (
   subject: string,
   basis: IBasis,
   message: string,
+  headerText: string,
   link: string,
   image: string
 ) => {
   resend.emails.send({
     from:
       basis === "ISCE"
-        ? "ISCE Team <support@striferral.com>"
+        ? "ISCE Team <support@palmtechniq.com>"
         : basis === "PalmTechniq"
-        ? "PalmTechnIQ Team <support@striferral.com>"
+        ? "PalmTechnIQ Team <support@palmtechniq.com>"
         : "ISCE Team <support@striferral.com>", // support@isce.tech
     to: email,
     subject,
     react:
       basis === "ISCE"
-        ? PromotionalEmail({ message: message, link: link, image: image })
+        ? ISCEPromotionMail({ message: message, link: link, image: image })
         : basis === "PalmTechniq"
-        ? PtPromotionMail()
-        : PromotionalEmail({ message: message, link: link, image: image }),
+        ? PtPromotionMail({
+            headerText: headerText,
+            message: message,
+            link: link,
+            image: image,
+          })
+        : ISCEPromotionMail({ message: message, link: link, image: image }),
   });
 };
 

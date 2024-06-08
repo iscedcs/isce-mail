@@ -1,4 +1,4 @@
-import { IBasis } from "@/lib/mail";
+import { IBasis } from "@/lib/mail-action/promotion/mail";
 import {
   Body,
   Container,
@@ -16,7 +16,7 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
-interface PromotionalEmailProps {
+interface ISCEPromotionalEmailProps {
   message: string;
   link: string;
   image: string;
@@ -26,11 +26,11 @@ const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "";
 
-export const PromotionalEmail = ({
+export const ISCEPromotionMail = ({
   message,
   link,
   image,
-}: PromotionalEmailProps) => {
+}: ISCEPromotionalEmailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -88,4 +88,4 @@ export const PromotionalEmail = ({
   );
 };
 
-export default PromotionalEmail;
+export default ISCEPromotionMail;
