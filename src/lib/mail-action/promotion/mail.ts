@@ -41,24 +41,3 @@ export const sendEmail = async (
   });
 };
 
-// export const sendEmail = async (
-//   email: string,
-//   token: string,
-//   subject: string,
-//   message: string,
-//   template: ITemplate
-// ) => {
-//   resend.emails.send({
-//     from: '"ISCE Team" <support@striferral.com>', // support@isce.tech
-//     to: email,
-//     subject,
-//     react:
-//       template === "announcement"
-//         ? AnnouncementEmail({ message })
-//         : template === "event"
-//         ? EventEmail({ loginCode: "123456" })
-//         : template === "newsletter"
-//         ? NewsletterEmail({ loginCode: "123456" })
-//         : PromotionalEmail({ loginCode: "123456" }),
-//   });
-// };
