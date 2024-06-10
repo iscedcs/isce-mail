@@ -24,8 +24,8 @@ interface PtPromotionMailProps {
 }
 
 const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "";
+  ? `${process.env.VERCEL_URL}`
+  : "/static";
 
 const PtPromotionMail = ({
   message,
@@ -49,11 +49,17 @@ const PtPromotionMail = ({
                 />
               </Section>
               <Section className="w-full px-[20px] ">
-                <Img
+                {/* <Img
                   width="200"
                   className="mx-auto rounded-md object-cover w-full pt-6"
                   height="500"
                   src={`${image}`}
+                /> */}
+                <Img
+                  width="200"
+                  className="mx-auto rounded-md object-cover w-full pt-6"
+                  height="500"
+                  src={`${baseUrl}/dummy-images/image-5.png`}
                 />
               </Section>
               <Section>

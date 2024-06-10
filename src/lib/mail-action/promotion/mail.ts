@@ -6,7 +6,7 @@ import { HeadManagerContext } from "next/dist/shared/lib/head-manager-context.sh
 export const revalidate = 0;
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const domain = process.env.NEXT_PUBLIC_APP_URL;
+const domain = process.env.VERCEL_URL;
 export type IBasis = "ISCE" | "PalmTechniq";
 
 export const sendEmail = async (
