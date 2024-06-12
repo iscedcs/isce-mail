@@ -16,28 +16,26 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-interface PtPromotionMailProps {
-  message: string;
-  link: string;
-  headerText: string;
-  image: string;
+interface RegCrashCourseProps {
+  fullName: string;
+  email: string;
+  courseName: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtPromotionMail = ({
-  message,
-  link,
-  image,
-  headerText,
-}: PtPromotionMailProps) => {
+const RegCrashCourse = ({
+  fullName = "Emeka Ignatius",
+  email = "divineonyi2004@gmail.com",
+  courseName = "UI/UX Design",
+}: RegCrashCourseProps) => {
   return (
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ Promotional Mail</Preview>
+          <Preview>PalmTechnIQ User Registration Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
               <Section className="bg-[#021A1A]">
@@ -48,37 +46,30 @@ const PtPromotionMail = ({
                   height="200"
                 />
               </Section>
-              <Section className="w-full px-[20px] ">
+              <Section className="w-full ">
                 <Img
                   width="200"
                   className="mx-auto rounded-md object-cover w-full pt-6"
-                  height="500"
-                  src={`${image}`}
+                  height="200"
+                  src={`https://isce-mail.vercel.app/static/template-images/reg-crash-course.png`}
                 />
-                {/* <Img
-                  width="200"
-                  className="mx-auto rounded-md object-cover w-full pt-6"
-                  height="500"
-                  src={`${baseUrl}/dummy-images/image-5.png`}
-                /> */}
               </Section>
               <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {message}
+                <Text className="text-[20px] mt-[70px] text-center  ">
+                  Dear <b>{fullName}</b>
                 </Text>
-              </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0  text-center md:text-left px-[20px]">
-                  {headerText}
+                <Text className="sm:text-[20px] text-[16px] text-center ">
+                  Your email - <b>{email}</b> has been registered under the
+                  course - <b>{courseName}</b>.
                 </Text>
               </Section>
               <Section className="text-center">
                 <Button
-                  href={link}
+                  href="/" /*Admin whatsapp link*/
                   className=" cursor-pointer rounded-full text-white text-[13px] bg-[#00DB80] "
                   style={{ padding: "10px 20px", margin: "0 auto" }}
                 >
-                  Be the first to try it out
+                  Speak with adminstration
                 </Button>
               </Section>
               <Hr className="mt-[30px]" />
@@ -149,4 +140,4 @@ const PtPromotionMail = ({
   );
 };
 
-export default PtPromotionMail;
+export default RegCrashCourse;
