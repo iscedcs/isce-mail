@@ -27,9 +27,9 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const RegCrashCourse = ({
-  fullName = "Emeka Ignatius",
-  email = "divineonyi2004@gmail.com",
-  courseName = "UI/UX Design",
+  fullName = "Nweke Ifeagwu",
+  email = "patrickifeagwu2019@gmail.com",
+  courseName = "Cybersecurity",
 }: RegCrashCourseProps) => {
   return (
     <Tailwind>
@@ -58,14 +58,14 @@ const RegCrashCourse = ({
                 <Text className="text-[20px] mt-[70px] text-center  ">
                   Dear <b>{fullName}</b>
                 </Text>
-                <Text className="sm:text-[20px] text-[16px] text-center ">
+                <Text className="sm:text-[20px] text-[15px] text-center ">
                   Your email - <b>{email}</b> has been registered under the
                   course - <b>{courseName}</b>.
                 </Text>
               </Section>
               <Section className="text-center">
                 <Button
-                  href="/" /*Admin whatsapp link*/
+                  href="https://wa.me/qr/GHKMMDKEJZNEF1" /*Admin whatsapp link*/
                   className=" cursor-pointer rounded-full text-white text-[13px] bg-[#00DB80] "
                   style={{ padding: "10px 20px", margin: "0 auto" }}
                 >
