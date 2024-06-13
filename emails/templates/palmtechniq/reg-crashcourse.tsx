@@ -49,7 +49,7 @@ const RegCrashCourse = ({
               <Section className="w-full ">
                 <Img
                   width="200"
-                  className="mx-auto rounded-md object-cover w-full pt-6"
+                  className="mx-auto rounded-md md:object-cover object-contain  w-full pt-6"
                   height="200"
                   src={`https://isce-mail.vercel.app/static/template-images/reg-crash-course.png`}
                 />
@@ -66,7 +66,7 @@ const RegCrashCourse = ({
               <Section className="text-center">
                 <Button
                   href="https://wa.me/qr/GHKMMDKEJZNEF1" /*Admin whatsapp link*/
-                  className=" cursor-pointer rounded-full text-white text-[13px] bg-[#00DB80] "
+                  className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "
                   style={{ padding: "10px 20px", margin: "0 auto" }}
                 >
                   Speak with adminstration
@@ -89,7 +89,7 @@ const RegCrashCourse = ({
               <Section className="pb-[40px] text-center ">
                 <Button
                   href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
@@ -100,7 +100,7 @@ const RegCrashCourse = ({
                 </Button>
                 <Button
                   href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
@@ -111,24 +111,13 @@ const RegCrashCourse = ({
                 </Button>
                 <Button
                   href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
                     height="23"
                     alt="facebook"
                     src={`https://static-00.iconduck.com/assets.00/instagram-icon-256x256-ubgz701g.png`}
-                  />
-                </Button>
-                <Button
-                  href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
-                >
-                  <Img
-                    width="23"
-                    height="23"
-                    alt="facebook"
-                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-white-round-icon.png`}
                   />
                 </Button>
               </Section>

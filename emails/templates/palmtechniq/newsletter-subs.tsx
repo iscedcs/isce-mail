@@ -16,20 +16,24 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-interface SignInProps {
+interface EmailVerificationProps {
   fullName: string;
+  link: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const SignIn = ({ fullName = "Nweke Ifeagwu" }: SignInProps) => {
+const EmailVerification = ({
+  fullName = "Nweke Ifeagwu",
+  link,
+}: EmailVerificationProps) => {
   return (
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ User Registration Mail</Preview>
+          <Preview>PalmTechnIQ NewsLetter Subscription Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
               <Section className="bg-[#021A1A]">
@@ -40,40 +44,24 @@ const SignIn = ({ fullName = "Nweke Ifeagwu" }: SignInProps) => {
                   height="200"
                 />
               </Section>
-              <Section className="w-full ">
-                <Img
-                  width="200"
-                  className="mx-auto rounded-md md:object-cover object-contain w-full"
-                  height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/thanks.png`}
-                />
-              </Section>
               <Section>
-                <Text className="font-bold text-[20px] ">
-                  Your journey has started!!
+                <Text className="font-bold text-center text-[20px] mt-[20px]">
+                  Welcome to the PalmTechnIQ Newsletter
                 </Text>
-                <Text>Dear {fullName},</Text>
-                <Text>
-                  We are glad to have you onboard, thank you for joining us on
-                  this learning adventure. We are absolutely thrilled to have
-                  you with us!
+                <Text className="md:text-left text-center  ">
+                  Hi, {fullName}
                 </Text>
-                <Text>
-                  You are here because you are eager for knowledge and ready to
-                  explore new horizons and you are ready to take charge of your
-                  future and carve your path to success.
+                <Text className="text-center md:text-left ">
+                  Congratulations, you will now be receiving updates and news on
+                  anything concerning PalmTechnIQ. Our newsletter is a good way
+                  to find out about new course additions, changes in
+                  curriculums, happening events and so on.
+                </Text>
+                <Text className="text-center md:text-left ">
+                  We are happy you are on board!!!
                 </Text>
               </Section>
-              <Section className=" md:text-left text-center">
-                <Button
-                  href="https://wa.me/qr/GHKMMDKEJZNEF1" /*Admin whatsapp link*/
-                  className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "
-                  style={{ padding: "10px 20px", margin: "0 auto" }}
-                >
-                  View Courses
-                </Button>
-              </Section>
-              <Section className="text-left">
+              <Section className="md:text-left text-center">
                 <span>
                   <Text>
                     Thanks, <br />
@@ -138,4 +126,4 @@ const SignIn = ({ fullName = "Nweke Ifeagwu" }: SignInProps) => {
   );
 };
 
-export default SignIn;
+export default EmailVerification;

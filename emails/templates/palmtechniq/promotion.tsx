@@ -75,7 +75,7 @@ const PtPromotionMail = ({
               <Section className="text-center">
                 <Button
                   href={link}
-                  className=" cursor-pointer rounded-full text-white text-[13px] bg-[#00DB80] "
+                  className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "
                   style={{ padding: "10px 20px", margin: "0 auto" }}
                 >
                   Be the first to try it out
@@ -98,7 +98,7 @@ const PtPromotionMail = ({
               <Section className="pb-[40px] text-center ">
                 <Button
                   href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
@@ -109,7 +109,7 @@ const PtPromotionMail = ({
                 </Button>
                 <Button
                   href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
@@ -120,24 +120,13 @@ const PtPromotionMail = ({
                 </Button>
                 <Button
                   href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
                     height="23"
                     alt="facebook"
                     src={`https://static-00.iconduck.com/assets.00/instagram-icon-256x256-ubgz701g.png`}
-                  />
-                </Button>
-                <Button
-                  href="/"
-                  className="bg-[#00DB80] m-[5px] py-[8px] px-[10px] rounded-full "
-                >
-                  <Img
-                    width="23"
-                    height="23"
-                    alt="facebook"
-                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-white-round-icon.png`}
                   />
                 </Button>
               </Section>

@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import ISCEPromotionMail from "../../../../emails/templates/isce/promotion";
 import PtPromotionMail from "../../../../emails/templates/palmtechniq/promotion";
-import RegCrashCourse from "../../../../emails/templates/palmtechniq/reg-crashcourse";
+import SignIn from "../../../../emails/templates/palmtechniq/signin";
 import { HeadManagerContext } from "next/dist/shared/lib/head-manager-context.shared-runtime";
 
 export const revalidate = 0;
@@ -18,7 +18,6 @@ export const sendEmail = async (
   headerText: string,
   link: string,
   image: string,
-
 ) => {
   resend.emails.send({
     from:
