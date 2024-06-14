@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
-import { sendMailAction } from "@/_action/send-mail";
+import { sendMailAction } from "@/_action/promotion/send-mail";
 import { AlertCircleIcon, LoaderCircle } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/promotion/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";

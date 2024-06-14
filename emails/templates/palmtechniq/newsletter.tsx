@@ -16,28 +16,21 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-interface PtPromotionMailProps {
+interface PtNewsLetterMailProps {
   message: string;
-  link: string;
   headerText: string;
-  image: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtPromotionMail = ({
-  message,
-  link,
-  image,
-  headerText,
-}: PtPromotionMailProps) => {
+const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
   return (
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ Promotional Mail</Preview>
+          <Preview>PalmTechnIQ Newsletter Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
               <Section className="bg-[#021A1A]">
@@ -48,19 +41,13 @@ const PtPromotionMail = ({
                   height="200"
                 />
               </Section>
-              <Section className="w-full px-[20px] ">
+              <Section className="w-full ">
                 <Img
                   width="200"
-                  className="mx-auto rounded-md object-cover w-full pt-6"
-                  height="500"
-                  src={`${image}`}
+                  className="mx-auto rounded-md object-contain w-full pt-6"
+                  height="200"
+                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-newsletter.png`}
                 />
-                {/* <Img
-                  width="200"
-                  className="mx-auto rounded-md object-cover w-full pt-6"
-                  height="500"
-                  src={`${baseUrl}/dummy-images/image-5.png`}
-                /> */}
               </Section>
               <Section>
                 <Text className="text-[25px] font-bold text-center md:text-left  ">
@@ -71,15 +58,6 @@ const PtPromotionMail = ({
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
                   {headerText}
                 </Text>
-              </Section>
-              <Section className="text-center">
-                <Button
-                  href={link}
-                  className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "
-                  style={{ padding: "10px 20px", margin: "0 auto" }}
-                >
-                  Be the first to try it out
-                </Button>
               </Section>
               <Hr className="mt-[30px]" />
               <Section className="text-center text-[#333333]">
@@ -138,4 +116,4 @@ const PtPromotionMail = ({
   );
 };
 
-export default PtPromotionMail;
+export default PtNewsLetterMail;

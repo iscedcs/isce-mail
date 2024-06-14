@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
-import { sendMailAction } from "@/_action/send-mail";
+import { sendMailAction } from "@/_action/newsletter/send-mail";
 import { AlertCircleIcon, LoaderCircle } from "lucide-react";
-import { IBasis } from "@/lib/mail-action/promotion/mail";
+import { IBasis } from "@/lib/mail-action/newsletter/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -138,7 +138,7 @@ export default function NewsLetterForm() {
             className="flex gap-1.5 items-center text-[#949494] "
             htmlFor="link"
           >
-            Promotion Link{" "}
+            Link{" "}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
