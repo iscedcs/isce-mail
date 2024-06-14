@@ -1,6 +1,7 @@
 import { Resend } from "resend";
-import ISCENewsLetterMail from "../../../../emails/templates/isce/newsletter";
-import PtNewsLetterMail from "../../../../emails/templates/palmtechniq/newsletter";
+
+import PtHolidayMail from "../../../../emails/templates/palmtechniq/holiday";
+import ISCEHolidayMail from "../../../../emails/templates/isce/holiday";
 
 export const revalidate = 0;
 
@@ -13,7 +14,8 @@ export const sendEmail = async (
   subject: string,
   basis: IBasis,
   headerText: string,
-  message: string
+  message: string,
+  image: string
 ) => {
   resend.emails.send({
     from:
@@ -26,12 +28,21 @@ export const sendEmail = async (
     subject,
     react:
       basis === "ISCE"
-        ? ISCENewsLetterMail({ message: message, headerText: headerText })
+        ? ISCEHolidayMail({
+            message: message,
+            headerText: headerText,
+            image: image,
+          })
         : basis === "PalmTechniq"
-        ? PtNewsLetterMail({
+        ? PtHolidayMail({
             headerText: headerText,
             message: message,
+            image: image,
           })
-        : ISCENewsLetterMail({ message: message, headerText: headerText }),
+        : ISCEHolidayMail({
+            message: message,
+            headerText: headerText,
+            image: image,
+          }),
   });
 };

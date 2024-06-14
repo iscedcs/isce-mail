@@ -16,7 +16,7 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-interface PtNewsLetterMailProps {
+interface PtAppreciationMailProps {
   message: string;
   headerText: string;
 }
@@ -25,12 +25,15 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
+const PtAppreciationMail = ({
+  message,
+  headerText,
+}: PtAppreciationMailProps) => {
   return (
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ Newsletter Mail</Preview>
+          <Preview>PalmTechnIQ Appreciation Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
               <Section className="bg-[#021A1A]">
@@ -46,7 +49,7 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
                   width="200"
                   className="mx-auto rounded-md object-contain w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-newsletter.png`}
+                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-appreciation.png`}
                 />
               </Section>
               <Section>
@@ -116,4 +119,4 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
   );
 };
 
-export default PtNewsLetterMail;
+export default PtAppreciationMail;

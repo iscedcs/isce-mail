@@ -55,21 +55,15 @@ const PtPromotionMail = ({
                   height="500"
                   src={`${image}`}
                 />
-                {/* <Img
-                  width="200"
-                  className="mx-auto rounded-md object-cover w-full pt-6"
-                  height="500"
-                  src={`${baseUrl}/dummy-images/image-5.png`}
-                /> */}
               </Section>
               <Section>
                 <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {message}
+                  {headerText}
                 </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {headerText}
+                  {message}
                 </Text>
               </Section>
               <Section className="text-center">

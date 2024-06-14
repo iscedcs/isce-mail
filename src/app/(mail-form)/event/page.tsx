@@ -11,20 +11,19 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
-import { sendMailAction } from "@/_action/promotion/send-mail";
+import { sendMailAction } from "@/_action/events/send-mail";
 import { AlertCircleIcon, LoaderCircle } from "lucide-react";
-import { IBasis } from "@/lib/mail-action/promotion/mail";
+import { IBasis } from "@/lib/mail-action/event/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface IEventsForm {
   subject: string;
   headerText: string;
+  time: string;
   basis: IBasis;
   message: string;
   image: string;
-  date: string;
-  time: string;
   emails: string;
   link: string;
 }
@@ -33,11 +32,10 @@ export default function EventsForm() {
   const [form, setForm] = useState<IEventsForm>({
     subject: "",
     headerText: "",
+    time: "",
     basis: "ISCE",
     message: "",
     image: "",
-    date: "",
-    time: "",
     emails: "",
     link: "",
   });
@@ -67,9 +65,8 @@ export default function EventsForm() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Events - Send emails</h1>
         <p className="text-gray-500 dark:text-gray-400">
-          Enter your email subject, message, events link and
-          select the basis of your email. Attach a CSV file with your
-          recipients&apos; email addresses.
+          Enter your email subject, message and select the basis of your email.
+          Attach a CSV file with your recipients&apos; email addresses.
         </p>
       </div>
       <div className="space-y-4">
@@ -122,7 +119,7 @@ export default function EventsForm() {
           </Select>
         </div>
         <div className="space-y-2 text-[#949494] ">
-          <Label htmlFor="image ">Image URL </Label>
+          <Label htmlFor="image">Image URL </Label>
           <Input
             onChange={(e) => {
               setForm({
@@ -131,15 +128,15 @@ export default function EventsForm() {
               });
             }}
             id="image"
+            disabled
             type="url"
             placeholder="Enter the image link"
             required
-            disabled
             defaultValue={form.image}
           />
         </div>
         <div className="space-y-2">
-          <Label className="flex gap-1.5 items-center" htmlFor="link">
+          <Label className="flex gap-1.5 items-center " htmlFor="link">
             Event Link{" "}
             <TooltipProvider>
               <Tooltip>
@@ -148,8 +145,8 @@ export default function EventsForm() {
                 </TooltipTrigger>
                 <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
                   <p>
-                    Direct your users to the platform the event is happening,
-                    could be a meeting link.
+                    Enter the link that directs users to the location of the
+                    event. Could be a pre-set meeting link or a waitlist form.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -164,9 +161,39 @@ export default function EventsForm() {
             }}
             id="link"
             type="url"
-            placeholder="Enter the link for promotion"
+            placeholder="Enter the link"
             required
             defaultValue={form.link}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="flex gap-1.5 items-center" htmlFor="time">
+            Event Date & Time{" "}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
+                </TooltipTrigger>
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                  <p>
+                    Input the date and time in the format DD/MM/YY : 06:23 (24hr
+                    clock time format).
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            onChange={(e) => {
+              setForm({
+                ...form,
+                time: e.target.value,
+              });
+            }}
+            id="time"
+            placeholder="DD/MM/YY : 06:23"
+            required
+            defaultValue={form.time}
           />
         </div>
         <div className="space-y-2">

@@ -16,21 +16,28 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-interface PtNewsLetterMailProps {
+interface ISCEEventMailProps {
+  time: string;
   message: string;
   headerText: string;
+  link: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
+const ISCEEventMail = ({
+  message,
+  time,
+  headerText,
+  link,
+}: ISCEEventMailProps) => {
   return (
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ Newsletter Mail</Preview>
+          <Preview>PalmTechnIQ Events Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
               <Section className="bg-[#021A1A]">
@@ -46,17 +53,22 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
                   width="200"
                   className="mx-auto rounded-md object-contain w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-newsletter.png`}
+                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-events.png`}
                 />
               </Section>
               <Section>
                 <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
+                  {headerText} heder
                 </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
+                  {message} message
+                </Text>
+              </Section>
+              <Section>
+                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
+                  Commencement Date & Time: <b>{time}WAT</b>
                 </Text>
               </Section>
               <Hr className="mt-[30px]" />
@@ -116,4 +128,4 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
   );
 };
 
-export default PtNewsLetterMail;
+export default ISCEEventMail;

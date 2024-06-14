@@ -16,21 +16,22 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-interface PtNewsLetterMailProps {
+interface PtHolidayMailProps {
   message: string;
   headerText: string;
+  image: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
+const PtHolidayMail = ({ message, image, headerText }: PtHolidayMailProps) => {
   return (
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ Newsletter Mail</Preview>
+          <Preview>PalmTechnIQ Holiday Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
               <Section className="bg-[#021A1A]">
@@ -41,12 +42,12 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
                   height="200"
                 />
               </Section>
-              <Section className="w-full ">
+              <Section className="w-full px-[20px] ">
                 <Img
                   width="200"
-                  className="mx-auto rounded-md object-contain w-full pt-6"
-                  height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-newsletter.png`}
+                  className="mx-auto rounded-md object-cover w-full pt-6"
+                  height="500"
+                  src={`${image}`}
                 />
               </Section>
               <Section>
@@ -116,4 +117,4 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
   );
 };
 
-export default PtNewsLetterMail;
+export default PtHolidayMail;

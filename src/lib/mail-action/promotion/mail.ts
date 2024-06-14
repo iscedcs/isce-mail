@@ -12,10 +12,10 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  message: string,
   headerText: string,
+  message: string,
   link: string,
-  image: string,
+  image: string
 ) => {
   resend.emails.send({
     from:

@@ -1,6 +1,6 @@
 import { Resend } from "resend";
-import ISCENewsLetterMail from "../../../../emails/templates/isce/newsletter";
-import PtNewsLetterMail from "../../../../emails/templates/palmtechniq/newsletter";
+import PtSurveyMail from "../../../../emails/templates/palmtechniq/survey";
+import ISCESurveyMail from "../../../../emails/templates/isce/survey";
 
 export const revalidate = 0;
 
@@ -13,7 +13,8 @@ export const sendEmail = async (
   subject: string,
   basis: IBasis,
   headerText: string,
-  message: string
+  message: string,
+  link: string
 ) => {
   resend.emails.send({
     from:
@@ -26,12 +27,21 @@ export const sendEmail = async (
     subject,
     react:
       basis === "ISCE"
-        ? ISCENewsLetterMail({ message: message, headerText: headerText })
+        ? ISCESurveyMail({
+            message: message,
+            link: link,
+            headerText: headerText,
+          })
         : basis === "PalmTechniq"
-        ? PtNewsLetterMail({
+        ? PtSurveyMail({
             headerText: headerText,
             message: message,
+            link: link,
           })
-        : ISCENewsLetterMail({ message: message, headerText: headerText }),
+        : ISCESurveyMail({
+            message: message,
+            link: link,
+            headerText: headerText,
+          }),
   });
 };

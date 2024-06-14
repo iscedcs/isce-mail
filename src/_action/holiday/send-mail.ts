@@ -1,12 +1,13 @@
 'use server';
 
-import { IBasis, sendEmail } from "@/lib/mail-action/newsletter/mail";
+import { IBasis, sendEmail } from "@/lib/mail-action/holiday/mail";
 
 export const sendMailAction = async (formData: {
   subject: string;
   basis: IBasis;
   message: string;
   headerText: string;
+  image: string;
   emails: string;
 }) => {
   try {
@@ -19,8 +20,9 @@ export const sendMailAction = async (formData: {
           formData.subject,
           formData.basis as IBasis,
           formData.headerText,
-        formData.message,
-          );
+          formData.message,
+          formData.image
+        );
         console.log({ a });
       })
     );

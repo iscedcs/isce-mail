@@ -161,7 +161,7 @@ export default function NewsLetterForm() {
             }}
             id="link"
             type="url"
-            placeholder="Enter the link for promotion"
+            placeholder="Enter the link"
             required
             disabled
             defaultValue={form.link}

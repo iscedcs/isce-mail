@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import { IBasis, sendEmail } from "@/lib/mail-action/newsletter/mail";
+import { IBasis, sendEmail } from "@/lib/mail-action/welcome/mail";
 
 export const sendMailAction = async (formData: {
   subject: string;
@@ -8,6 +8,7 @@ export const sendMailAction = async (formData: {
   message: string;
   headerText: string;
   emails: string;
+  link: string;
 }) => {
   try {
     const emailArray = formData.emails.split(",");
@@ -19,8 +20,9 @@ export const sendMailAction = async (formData: {
           formData.subject,
           formData.basis as IBasis,
           formData.headerText,
-        formData.message,
-          );
+          formData.message,
+          formData.link
+        );
         console.log({ a });
       })
     );

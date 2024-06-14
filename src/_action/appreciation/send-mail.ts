@@ -1,6 +1,6 @@
 'use server';
 
-import { IBasis, sendEmail } from "@/lib/mail-action/newsletter/mail";
+import { IBasis, sendEmail } from "@/lib/mail-action/appreciation/mail";
 
 export const sendMailAction = async (formData: {
   subject: string;

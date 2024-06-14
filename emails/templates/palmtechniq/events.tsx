@@ -16,21 +16,23 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-interface PtNewsLetterMailProps {
+interface PtEventMailProps {
   message: string;
   headerText: string;
+  link: string;
+  time: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
+const PtEventMail = ({ message, time, headerText, link }: PtEventMailProps) => {
   return (
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ Newsletter Mail</Preview>
+          <Preview>PalmTechnIQ Events Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
               <Section className="bg-[#021A1A]">
@@ -46,7 +48,7 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
                   width="200"
                   className="mx-auto rounded-md object-contain w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-newsletter.png`}
+                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-events.png`}
                 />
               </Section>
               <Section>
@@ -58,6 +60,20 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
                   {message}
                 </Text>
+              </Section>
+              <Section>
+                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
+                  Commencement Date & Time: <b>{time} WAT</b>
+                </Text>
+              </Section>
+              <Section className="text-center">
+                <Button
+                  href={link}
+                  className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "
+                  style={{ padding: "10px 20px", margin: "0 auto" }}
+                >
+                  Get involved!!!
+                </Button>
               </Section>
               <Hr className="mt-[30px]" />
               <Section className="text-center text-[#333333]">
@@ -116,4 +132,4 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
   );
 };
 
-export default PtNewsLetterMail;
+export default PtEventMail;
