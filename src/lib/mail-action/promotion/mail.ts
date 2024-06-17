@@ -28,7 +28,12 @@ export const sendEmail = async (
     subject,
     react:
       basis === "ISCE"
-        ? ISCEPromotionMail({ message: message, link: link, image: image })
+        ? ISCEPromotionMail({
+            headerText: headerText,
+            message: message,
+            link: link,
+            image: image,
+          })
         : basis === "PalmTechniq"
         ? PtPromotionMail({
             headerText: headerText,
@@ -36,7 +41,12 @@ export const sendEmail = async (
             link: link,
             image: image,
           })
-        : ISCEPromotionMail({ message: message, link: link, image: image }),
+        : ISCEPromotionMail({
+            message: message,
+            headerText: headerText,
+            link: link,
+            image: image,
+          }),
   });
 };
 

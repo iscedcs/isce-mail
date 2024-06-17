@@ -17,8 +17,8 @@ import {
 import React from "react";
 
 interface ISCENewsLetterMailProps {
-  message: string;
   headerText: string;
+  message: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
@@ -33,81 +33,88 @@ const ISCENewsLetterMail = ({
     <Tailwind>
       <Html>
         <Head>
-          <Preview>PalmTechnIQ Newsletter Mail</Preview>
+          <Preview>ISCE Newsletter Mail</Preview>
           <Body className="w-full">
             <Container className="w-full">
-              <Section className="bg-[#021A1A]">
+              <Section className="bg-[#000]">
                 <Img
                   className="mx-auto py-3 h-full object-cover"
-                  src={`https://www.palmtechniq.com/assets/palmtechniqlogo.png`}
-                  width="200"
-                  height="200"
+                  src={`https://www.isce.tech/_next/image?url=%2Ffi-white.webp&w=128&q=75`}
+                  width="100"
+                  height="100"
                 />
               </Section>
               <Section className="w-full ">
                 <Img
                   width="200"
-                  className="mx-auto rounded-md object-contain w-full pt-6"
+                  className="mx-auto rounded-md object-contain md:object-cover w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-newsletter.png`}
+                  src={`https://isce-mail.vercel.app/static/template-images/isce-newsletter.png`}
                 />
               </Section>
               <Section>
                 <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {message}
+                  {headerText}
                 </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {headerText}
+                  {message}
                 </Text>
               </Section>
               <Hr className="mt-[30px]" />
-              <Section className="text-center text-[#333333]">
+              <Section className="text-left pt-[20px] px-[40px] bg-black text-[#ffffff]">
                 <Text>
-                  <p>Copyright © 2024 PalmTechnIQ, All Rights Reserved.</p>
                   <p>
                     You are recieving this mail because you opted in via our
                     website.
                   </p>
-                  <p>
-                    Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
-                    Building, 22Rd ,Festac Town, Lagos, Nigeria.
-                  </p>
+                  <p>Copyright © 2024: ISCE, All Rights Reserved.</p>
                 </Text>
               </Section>
-              <Section className="pb-[40px] text-center ">
+              <Section className="pb-[40px] px-[25px] bg-black text-left ">
                 <Button
                   href="/"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
-                    width="23"
-                    height="23"
+                    width="18"
+                    height="18"
                     alt="facebook"
-                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/facebook-app-round-white-icon.png`}
+                    src={`https://cdn-icons-png.flaticon.com/128/3128/3128208.png`}
                   />
                 </Button>
                 <Button
                   href="/"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
-                    width="23"
-                    height="23"
-                    alt="facebook"
-                    src={`https://static-00.iconduck.com/assets.00/linkedin-icon-512x512-a7sf08js.png`}
+                    width="18"
+                    height="18"
+                    alt="linkedin"
+                    src={`https://cdn-icons-png.flaticon.com/128/4401/4401412.png`}
                   />
                 </Button>
                 <Button
                   href="/"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
-                    width="23"
-                    height="23"
-                    alt="facebook"
-                    src={`https://static-00.iconduck.com/assets.00/instagram-icon-256x256-ubgz701g.png`}
+                    width="18"
+                    height="18"
+                    alt="instagram"
+                    src={`https://cdn-icons-png.flaticon.com/128/1400/1400829.png`}
+                  />
+                </Button>
+                <Button
+                  href="/"
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
+                >
+                  <Img
+                    width="18"
+                    height="18"
+                    alt="x"
+                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/x-social-media-black-icon.png`}
                   />
                 </Button>
               </Section>
