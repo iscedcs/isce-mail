@@ -78,7 +78,7 @@ const PtAppreciationMail = ({
               </Section>
               <Section className="pb-[40px] text-center ">
                 <Button
-                  href="/"
+                  href="https://web.facebook.com/profile.php?id=61560523394595"
                   className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
@@ -89,24 +89,24 @@ const PtAppreciationMail = ({
                   />
                 </Button>
                 <Button
-                  href="/"
+                  href="https://www.linkedin.com/in/palm-techniq-03839b313/"
                   className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
                     height="23"
-                    alt="facebook"
+                    alt="linkedin"
                     src={`https://static-00.iconduck.com/assets.00/linkedin-icon-512x512-a7sf08js.png`}
                   />
                 </Button>
                 <Button
-                  href="/"
+                  href="https://www.instagram.com/palmtechniq/"
                   className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
                     width="23"
                     height="23"
-                    alt="facebook"
+                    alt="instagram"
                     src={`https://static-00.iconduck.com/assets.00/instagram-icon-256x256-ubgz701g.png`}
                   />
                 </Button>
