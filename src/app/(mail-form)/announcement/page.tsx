@@ -16,6 +16,7 @@ import { AlertCircleIcon, LoaderCircle } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/announcement/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
+import CSVUploader from "@/components/shared/csv-uploader";
 
 export interface IAnnouncementForm {
   subject: string;
@@ -28,6 +29,11 @@ export interface IAnnouncementForm {
 }
 
 export default function AnnouncementForm() {
+  const [csvContent, setCsvContent] = useState<string>("");
+  const [error, setError] = useState<string | undefined>();
+  const [success, setSuccess] = useState<string | undefined>();
+  const [isPending, startTransition] = useTransition();
+
   const [form, setForm] = useState<IAnnouncementForm>({
     subject: "",
     headerText: "",
@@ -37,10 +43,6 @@ export default function AnnouncementForm() {
     link: "",
     emails: "",
   });
-  const [error, setError] = useState<string | undefined>();
-  const [success, setSuccess] = useState<string | undefined>();
-  const [isPending, startTransition] = useTransition();
-
   const sendMail = async () => {
     startTransition(() => {
       sendMailAction(form)
@@ -54,6 +56,27 @@ export default function AnnouncementForm() {
         })
         .catch(() => setError("Something went wrong!!!"));
     });
+  };
+
+  const handleFileUpload = (event: any) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const trimmedText = text
+          .split(",")
+          .map((row) =>
+            row
+              .split(",")
+              .map((cell) => cell.trim())
+              .join(",")
+          )
+          .join(",");
+        setCsvContent(trimmedText);
+      };
+      reader.readAsText(file);
+    }
   };
   return (
     <form
@@ -222,7 +245,7 @@ export default function AnnouncementForm() {
             </TooltipProvider>
           </Label>
           <Textarea
-            defaultValue={form.emails}
+            defaultValue={(form.emails = csvContent)}
             onChange={(e) => {
               setForm({
                 ...form,
@@ -233,6 +256,22 @@ export default function AnnouncementForm() {
             placeholder="Enter email addresses separated by commas"
             required
           />
+        </div>
+        <div className="space-y-2">
+          <Label className="flex gap-1.5 items-center" htmlFor="emails">
+            Upload CSV File - If available{" "}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
+                </TooltipTrigger>
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                  <p>Upload a CSV file containing the emails.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <CSVUploader handleUpload={handleFileUpload} />
         </div>
         {error && <div className="text-destructive ">{error}</div>}
         {success && <div className="text-emerald-600 ">{success}</div>}
