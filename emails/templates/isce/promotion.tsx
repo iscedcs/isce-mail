@@ -15,6 +15,7 @@ import {
   Preview,
 } from "@react-email/components";
 import React, { ReactNode } from "react";
+import parse from "html-react-parser";
 
 interface ISCEPromotionMailProps {
   message: string;
@@ -31,6 +32,8 @@ const ISCEPromotionMail = ({
   link,
   image,
 }: ISCEPromotionMailProps) => {
+  const santizedHTML = parse(message);
+
   return (
     <Tailwind>
       <Html>
@@ -54,8 +57,9 @@ const ISCEPromotionMail = ({
                   src={`${image}`}
                 />
               </Section>
-              <Section>{message}</Section>
-              <Section className="text-center">
+              <Section>{santizedHTML}</Section>
+
+              <Section>
                 <Button
                   href={link}
                   className=" cursor-pointer text-white text-[13px] bg-black "

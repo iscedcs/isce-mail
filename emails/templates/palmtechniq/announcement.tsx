@@ -15,6 +15,8 @@ import {
   Preview,
 } from "@react-email/components";
 import React from "react";
+import parse from "html-react-parser";
+
 
 interface PtAnnouncementMailProps {
   message: string;
@@ -29,6 +31,7 @@ const PtAnnouncementMail = ({
   message,
   link,
 }: PtAnnouncementMailProps) => {
+  const santizedHTML = parse(message);
   return (
     <Tailwind>
       <Html>
@@ -44,12 +47,8 @@ const PtAnnouncementMail = ({
                   height="200"
                 />
               </Section>
+              <Section>{santizedHTML}</Section>
               <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
-              <Section className="text-center">
                 <Button
                   href={link}
                   className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "

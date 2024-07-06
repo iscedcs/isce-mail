@@ -15,6 +15,7 @@ import {
   Preview,
 } from "@react-email/components";
 import React from "react";
+import parse from "html-react-parser";
 
 interface PtHolidayMailProps {
   message: string;
@@ -26,6 +27,8 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const PtHolidayMail = ({ message, image }: PtHolidayMailProps) => {
+  const santizedHTML = parse(message);
+
   return (
     <Tailwind>
       <Html>
@@ -49,11 +52,8 @@ const PtHolidayMail = ({ message, image }: PtHolidayMailProps) => {
                   src={`${image}`}
                 />
               </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
+              <Section>{santizedHTML}</Section>
+
               <Hr className="mt-[30px]" />
               <Section className="text-center text-[#333333]">
                 <Text>

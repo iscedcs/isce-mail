@@ -15,6 +15,7 @@ import {
   Preview,
 } from "@react-email/components";
 import React from "react";
+import parse from "html-react-parser";
 
 interface ISCEAnnouncementMailProps {
   message: string;
@@ -26,6 +27,8 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
+  const santizedHTML = parse(message);
+
   return (
     <Tailwind>
       <Html>
@@ -41,12 +44,9 @@ const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
                   height="100"
                 />
               </Section>
+              <Section>{santizedHTML}</Section>
+
               <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
-              <Section className="text-center">
                 <Button
                   href={link}
                   className=" cursor-pointer text-white text-[13px] bg-black "

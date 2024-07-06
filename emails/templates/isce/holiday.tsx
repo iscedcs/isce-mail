@@ -15,6 +15,8 @@ import {
   Preview,
 } from "@react-email/components";
 import React from "react";
+import parse from "html-react-parser";
+
 
 interface ISCEHolidayMailProps {
   message: string;
@@ -29,6 +31,8 @@ const ISCEHolidayMail = ({
   message,
   image,
 }: ISCEHolidayMailProps) => {
+    const santizedHTML = parse(message);
+
   return (
     <Tailwind>
       <Html>
@@ -52,11 +56,8 @@ const ISCEHolidayMail = ({
                   src={`${image}`}
                 />
               </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
+              <Section>{santizedHTML}</Section>
+
               <Hr className="mt-[30px]" />
               <Section className="text-left pt-[20px] px-[40px] bg-black text-[#ffffff]">
                 <Text>

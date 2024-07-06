@@ -15,6 +15,8 @@ import {
   Preview,
 } from "@react-email/components";
 import React from "react";
+import parse from "html-react-parser";
+
 
 interface PtSurveyMailProps {
   message: string;
@@ -26,6 +28,8 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const PtSurveyMail = ({ message, link }: PtSurveyMailProps) => {
+    const santizedHTML = parse(message);
+
   return (
     <Tailwind>
       <Html>
@@ -49,12 +53,8 @@ const PtSurveyMail = ({ message, link }: PtSurveyMailProps) => {
                   src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-survey.png`}
                 />
               </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
-              <Section className="text-center">
+              <Section>{santizedHTML}</Section>
+              <Section className="">
                 <Button
                   href={link}
                   className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "

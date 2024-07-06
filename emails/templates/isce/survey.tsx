@@ -15,6 +15,7 @@ import {
   Preview,
 } from "@react-email/components";
 import React from "react";
+import parse from "html-react-parser";
 
 interface ISCESurveyMailProps {
   message: string;
@@ -26,6 +27,8 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const ISCESurveyMail = ({ message, link }: ISCESurveyMailProps) => {
+  const santizedHTML = parse(message);
+
   return (
     <Tailwind>
       <Html>
@@ -49,12 +52,9 @@ const ISCESurveyMail = ({ message, link }: ISCESurveyMailProps) => {
                   src={`https://isce-mail.vercel.app/static/template-images/isce-survey.png`}
                 />
               </Section>
+              <Section>{santizedHTML}</Section>
+
               <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
-              <Section className="text-center">
                 <Button
                   href={link}
                   className=" cursor-pointer text-white text-[13px] bg-black "

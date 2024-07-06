@@ -53,7 +53,7 @@ const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
                 />
               </Section>
               <Section>{santizedHTML}</Section>
-              <Section className="text-center">
+              <Section>
                 <Button
                   href={link}
                   className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "

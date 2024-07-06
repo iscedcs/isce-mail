@@ -15,6 +15,7 @@ import {
   Preview,
 } from "@react-email/components";
 import React from "react";
+import parse from "html-react-parser";
 
 interface ISCEWelcomeMailProps {
   message: string;
@@ -26,6 +27,8 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const ISCEWelcomeMail = ({ message, link }: ISCEWelcomeMailProps) => {
+  const santizedHTML = parse(message);
+
   return (
     <Tailwind>
       <Html>
@@ -49,11 +52,8 @@ const ISCEWelcomeMail = ({ message, link }: ISCEWelcomeMailProps) => {
                   src={`https://isce-mail.vercel.app/static/template-images/isce-welcome.png`}
                 />
               </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
+              <Section>{santizedHTML}</Section>
+
               <Section className="text-center">
                 <Button
                   href={link}
