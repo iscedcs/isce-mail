@@ -17,9 +17,7 @@ import {
 import React from "react";
 
 interface ISCEEventMailProps {
-  time: string;
   message: string;
-  headerText: string;
   link: string;
 }
 
@@ -27,12 +25,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const ISCEEventMail = ({
-  message,
-  time,
-  headerText,
-  link,
-}: ISCEEventMailProps) => {
+const ISCEEventMail = ({ message, link }: ISCEEventMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -57,18 +50,8 @@ const ISCEEventMail = ({
                 />
               </Section>
               <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
-              </Section>
-              <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
                   {message}
-                </Text>
-              </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  Commencement Date & Time: <b>{time}WAT</b>
                 </Text>
               </Section>
               <Section className="text-center">

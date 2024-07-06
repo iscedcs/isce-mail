@@ -18,7 +18,6 @@ import React from "react";
 
 interface ISCESurveyMailProps {
   message: string;
-  headerText: string;
   link: string;
 }
 
@@ -26,7 +25,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const ISCESurveyMail = ({ message, headerText, link }: ISCESurveyMailProps) => {
+const ISCESurveyMail = ({ message, link }: ISCESurveyMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -49,11 +48,6 @@ const ISCESurveyMail = ({ message, headerText, link }: ISCESurveyMailProps) => {
                   height="200"
                   src={`https://isce-mail.vercel.app/static/template-images/isce-survey.png`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

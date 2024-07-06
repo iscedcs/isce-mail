@@ -18,7 +18,6 @@ import React from "react";
 
 interface ISCEHolidayMailProps {
   message: string;
-  headerText: string;
   image: string;
 }
 
@@ -29,7 +28,6 @@ const baseUrl = process.env.VERCEL_URL
 const ISCEHolidayMail = ({
   message,
   image,
-  headerText,
 }: ISCEHolidayMailProps) => {
   return (
     <Tailwind>
@@ -53,11 +51,6 @@ const ISCEHolidayMail = ({
                   height="500"
                   src={`${image}`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

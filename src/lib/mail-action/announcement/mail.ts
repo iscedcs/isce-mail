@@ -12,7 +12,6 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  headerText: string,
   message: string,
   link: string
 ) => {
@@ -20,26 +19,16 @@ export const sendEmail = async (
     from:
       basis === "ISCE"
         ? "ISCE Team <support@palmtechniq.com>"
-        : basis === "PalmTechniq"
-        ? "PalmTechnIQ Team <support@palmtechniq.com>"
-        : "ISCE Team <support@striferral.com>", // support@isce.tech
+        : "PalmTechnIQ Team <support@palmtechniq.com>",
     to: email,
     subject,
     react:
       basis === "ISCE"
         ? ISCEAnnouncementMail({
-            headerText: headerText,
             message: message,
             link: link,
           })
-        : basis === "PalmTechniq"
-        ? PtAnnouncementMail({
-            headerText: headerText,
-            message: message,
-            link: link,
-          })
-        : ISCEAnnouncementMail({
-            headerText: headerText,
+        : PtAnnouncementMail({
             message: message,
             link: link,
           }),

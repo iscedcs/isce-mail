@@ -19,7 +19,6 @@ import React, { ReactNode } from "react";
 interface ISCEPromotionMailProps {
   message: string;
   link: string;
-  headerText: string;
   image: string;
 }
 
@@ -31,7 +30,6 @@ const ISCEPromotionMail = ({
   message,
   link,
   image,
-  headerText,
 }: ISCEPromotionMailProps) => {
   return (
     <Tailwind>
@@ -56,13 +54,7 @@ const ISCEPromotionMail = ({
                   src={`${image}`}
                 />
               </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
-              </Section>
-              <Section>{message}
-              </Section>
+              <Section>{message}</Section>
               <Section className="text-center">
                 <Button
                   href={link}

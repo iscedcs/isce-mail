@@ -22,7 +22,6 @@ import Editor from "@/components/shared/editor-component/editor";
 
 export interface IAnnouncementForm {
   subject: string;
-  headerText: string;
   basis: IBasis;
   message: string;
   image: string;
@@ -39,7 +38,6 @@ export default function AnnouncementForm() {
 
   const [form, setForm] = useState<IAnnouncementForm>({
     subject: "",
-    headerText: "",
     basis: "ISCE",
     message: "",
     image: "",
@@ -188,33 +186,6 @@ export default function AnnouncementForm() {
             placeholder="Enter the link "
             required
             defaultValue={form.link}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="flex gap-1.5 items-center" htmlFor="headerText">
-            Header Line{" "}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
-                </TooltipTrigger>
-                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
-                  <p>Create a general description of the email content.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Input
-            onChange={(e) => {
-              setForm({
-                ...form,
-                headerText: e.target.value,
-              });
-            }}
-            id="headerText"
-            placeholder="Enter the header of your email"
-            required
-            defaultValue={form.headerText}
           />
         </div>
         <div className="space-y-2">

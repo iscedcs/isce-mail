@@ -13,7 +13,6 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  headerText: string,
   message: string,
   image: string
 ) => {
@@ -30,18 +29,15 @@ export const sendEmail = async (
       basis === "ISCE"
         ? ISCEHolidayMail({
             message: message,
-            headerText: headerText,
             image: image,
           })
         : basis === "PalmTechniq"
         ? PtHolidayMail({
-            headerText: headerText,
             message: message,
             image: image,
           })
         : ISCEHolidayMail({
             message: message,
-            headerText: headerText,
             image: image,
           }),
   });

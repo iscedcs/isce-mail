@@ -18,14 +18,13 @@ import React from "react";
 
 interface PtNewsLetterMailProps {
   message: string;
-  headerText: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
+const PtNewsLetterMail = ({ message }: PtNewsLetterMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -48,11 +47,6 @@ const PtNewsLetterMail = ({ message, headerText }: PtNewsLetterMailProps) => {
                   height="200"
                   src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-newsletter.png`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

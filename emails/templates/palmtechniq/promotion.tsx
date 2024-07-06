@@ -19,7 +19,6 @@ import parse  from "html-react-parser";
 interface PtPromotionMailProps {
   message: string;
   link: string;
-  headerText: string;
   image: string;
 }
 
@@ -27,13 +26,8 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtPromotionMail = ({
-  message,
-  link,
-  image,
-  headerText,
-}: PtPromotionMailProps) => {
-  const santizedHTML = parse(message)
+const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
+  const santizedHTML = parse(message);
 
   return (
     <Tailwind>
@@ -57,11 +51,6 @@ const PtPromotionMail = ({
                   height="500"
                   src={`${image}`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>{santizedHTML}</Section>
               <Section className="text-center">

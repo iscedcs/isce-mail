@@ -12,7 +12,6 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  headerText: string,
   message: string,
   link: string
 ) => {
@@ -28,18 +27,15 @@ export const sendEmail = async (
     react:
       basis === "ISCE"
         ? ISCEWelcomeMail({
-            headerText: headerText,
             message: message,
             link: link,
           })
         : basis === "PalmTechniq"
         ? PtWelcomeMail({
-            headerText: headerText,
             message: message,
             link: link,
           })
         : ISCEWelcomeMail({
-            headerText: headerText,
             message: message,
             link: link,
           }),

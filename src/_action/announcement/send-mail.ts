@@ -6,7 +6,6 @@ export const sendMailAction = async (formData: {
   subject: string;
   basis: IBasis;
   message: string;
-  headerText: string;
   emails: string;
   link: string;
 }) => {
@@ -19,7 +18,6 @@ export const sendMailAction = async (formData: {
           a.trim(),
           formData.subject,
           formData.basis as IBasis,
-          formData.headerText,
           formData.message,
           formData.link
         );

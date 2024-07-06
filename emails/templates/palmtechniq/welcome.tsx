@@ -18,7 +18,6 @@ import React from "react";
 
 interface PtWelcomeMailProps {
   message: string;
-  headerText: string;
   link: string;
 }
 
@@ -26,7 +25,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtWelcomeMail = ({ message, headerText, link }: PtWelcomeMailProps) => {
+const PtWelcomeMail = ({ message, link }: PtWelcomeMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -49,11 +48,6 @@ const PtWelcomeMail = ({ message, headerText, link }: PtWelcomeMailProps) => {
                   height="200"
                   src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-welcome.png`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

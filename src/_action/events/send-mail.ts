@@ -6,10 +6,8 @@ export const sendMailAction = async (formData: {
   subject: string;
   basis: IBasis;
   message: string;
-  headerText: string;
   emails: string;
   link: string;
-  time: string;
 }) => {
   try {
     const emailArray = formData.emails.split(",");
@@ -20,10 +18,8 @@ export const sendMailAction = async (formData: {
           a.trim(),
           formData.subject,
           formData.basis as IBasis,
-          formData.headerText,
           formData.message,
           formData.link,
-          formData.time
         );
         console.log({ a });
       })

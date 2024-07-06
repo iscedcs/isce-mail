@@ -12,10 +12,8 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  headerText: string,
   message: string,
   link: string,
-  time: string
 ) => {
   resend.emails.send({
     from:
@@ -29,23 +27,17 @@ export const sendEmail = async (
     react:
       basis === "ISCE"
         ? ISCEEventMail({
-            headerText: headerText,
             message: message,
             link: link,
-            time: time,
           })
         : basis === "PalmTechniq"
         ? PtEventMail({
-            headerText: headerText,
             message: message,
             link: link,
-            time: time,
           })
         : ISCEEventMail({
-            headerText: headerText,
             message: message,
             link: link,
-            time: time,
           }),
   });
 };

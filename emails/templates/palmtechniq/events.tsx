@@ -18,16 +18,14 @@ import React from "react";
 
 interface PtEventMailProps {
   message: string;
-  headerText: string;
   link: string;
-  time: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtEventMail = ({ message, time, headerText, link }: PtEventMailProps) => {
+const PtEventMail = ({ message, link }: PtEventMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -51,19 +49,10 @@ const PtEventMail = ({ message, time, headerText, link }: PtEventMailProps) => {
                   src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-events.png`}
                 />
               </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
-              </Section>
+
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
                   {message}
-                </Text>
-              </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  Commencement Date & Time: <b>{time} WAT</b>
                 </Text>
               </Section>
               <Section className="text-center">

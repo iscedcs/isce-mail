@@ -17,7 +17,6 @@ import {
 import React from "react";
 
 interface ISCENewsLetterMailProps {
-  headerText: string;
   message: string;
 }
 
@@ -25,10 +24,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const ISCENewsLetterMail = ({
-  message,
-  headerText,
-}: ISCENewsLetterMailProps) => {
+const ISCENewsLetterMail = ({ message }: ISCENewsLetterMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -51,11 +47,6 @@ const ISCENewsLetterMail = ({
                   height="200"
                   src={`https://isce-mail.vercel.app/static/template-images/isce-newsletter.png`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

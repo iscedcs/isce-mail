@@ -12,7 +12,6 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  headerText: string,
   message: string,
   link: string
 ) => {
@@ -30,18 +29,15 @@ export const sendEmail = async (
         ? ISCESurveyMail({
             message: message,
             link: link,
-            headerText: headerText,
           })
         : basis === "PalmTechniq"
         ? PtSurveyMail({
-            headerText: headerText,
             message: message,
             link: link,
           })
         : ISCESurveyMail({
             message: message,
             link: link,
-            headerText: headerText,
           }),
   });
 };

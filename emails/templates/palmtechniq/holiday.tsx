@@ -18,7 +18,6 @@ import React from "react";
 
 interface PtHolidayMailProps {
   message: string;
-  headerText: string;
   image: string;
 }
 
@@ -26,7 +25,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtHolidayMail = ({ message, image, headerText }: PtHolidayMailProps) => {
+const PtHolidayMail = ({ message, image }: PtHolidayMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -49,11 +48,6 @@ const PtHolidayMail = ({ message, image, headerText }: PtHolidayMailProps) => {
                   height="500"
                   src={`${image}`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

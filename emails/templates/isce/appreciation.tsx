@@ -18,7 +18,6 @@ import React from "react";
 
 interface ISCEAppreciationMailProps {
   message: string;
-  headerText: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
@@ -27,7 +26,6 @@ const baseUrl = process.env.VERCEL_URL
 
 const ISCEAppreciationMail = ({
   message,
-  headerText,
 }: ISCEAppreciationMailProps) => {
   return (
     <Tailwind>
@@ -51,11 +49,6 @@ const ISCEAppreciationMail = ({
                   height="200"
                   src={`https://isce-mail.vercel.app/static/template-images/isce-appreciation.png`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

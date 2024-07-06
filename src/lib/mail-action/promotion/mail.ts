@@ -13,7 +13,6 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  headerText: string,
   message: string,
   link: string,
   image: string
@@ -28,13 +27,11 @@ export const sendEmail = async (
     react:
       basis === "ISCE"
         ? ISCEPromotionMail({
-            headerText: headerText,
             message: message,
             link: link,
             image: image,
           })
         : PtPromotionMail({
-            headerText: headerText,
             message: message,
             link: link,
             image: image,

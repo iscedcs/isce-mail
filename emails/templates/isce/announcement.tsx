@@ -18,7 +18,6 @@ import React from "react";
 
 interface ISCEAnnouncementMailProps {
   message: string;
-  headerText: string;
   link: string;
 }
 
@@ -26,7 +25,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const ISCEAnnouncementMail = ({ message, headerText, link }: ISCEAnnouncementMailProps) => {
+const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -41,11 +40,6 @@ const ISCEAnnouncementMail = ({ message, headerText, link }: ISCEAnnouncementMai
                   width="100"
                   height="100"
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

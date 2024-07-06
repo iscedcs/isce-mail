@@ -18,7 +18,6 @@ import React from "react";
 
 interface ISCEWelcomeMailProps {
   message: string;
-  headerText: string;
   link: string;
 }
 
@@ -26,7 +25,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const ISCEWelcomeMail = ({ message, headerText, link }: ISCEWelcomeMailProps) => {
+const ISCEWelcomeMail = ({ message, link }: ISCEWelcomeMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -49,11 +48,6 @@ const ISCEWelcomeMail = ({ message, headerText, link }: ISCEWelcomeMailProps) =>
                   height="200"
                   src={`https://isce-mail.vercel.app/static/template-images/isce-welcome.png`}
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">

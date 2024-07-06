@@ -18,17 +18,13 @@ import React from "react";
 
 interface PtAppreciationMailProps {
   message: string;
-  headerText: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtAppreciationMail = ({
-  message,
-  headerText,
-}: PtAppreciationMailProps) => {
+const PtAppreciationMail = ({ message }: PtAppreciationMailProps) => {
   return (
     <Tailwind>
       <Html>
@@ -53,17 +49,12 @@ const PtAppreciationMail = ({
                 />
               </Section>
               <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
-              </Section>
-              <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
                   {message}
                 </Text>
               </Section>
               <Hr className="mt-[30px]" />
-              <Section className="text-center text-[#333333]">
+              <Section className="tSext-center text-[#333333]">
                 <Text>
                   <p>Copyright © 2024 PalmTechnIQ, All Rights Reserved.</p>
                   <p>

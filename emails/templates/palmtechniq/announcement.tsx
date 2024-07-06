@@ -18,7 +18,6 @@ import React from "react";
 
 interface PtAnnouncementMailProps {
   message: string;
-  headerText: string;
   link: string;
 }
 
@@ -28,7 +27,6 @@ const baseUrl = process.env.VERCEL_URL
 
 const PtAnnouncementMail = ({
   message,
-  headerText,
   link,
 }: PtAnnouncementMailProps) => {
   return (
@@ -45,11 +43,6 @@ const PtAnnouncementMail = ({
                   width="200"
                   height="200"
                 />
-              </Section>
-              <Section>
-                <Text className="text-[25px] font-bold text-center md:text-left  ">
-                  {headerText}
-                </Text>
               </Section>
               <Section>
                 <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
