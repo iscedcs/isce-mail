@@ -58,26 +58,22 @@ export default function NewsLetterForm() {
     });
   };
 
-  const handleFileUpload = (event: any) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        const trimmedText = text
-          .split(",")
-          .map((row) =>
-            row
-              .split(",")
-              .map((cell) => cell.trim())
-              .join(",")
-          )
-          .join(",");
-        setCsvContent(trimmedText);
-      };
-      reader.readAsText(file);
-    }
-  };
+const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const rows = text.split("\n").map((row) => row.split(","));
+      const trimmedRows = rows.map((row) =>
+        row.map((cell) => cell.trim()).join(",")
+      );
+      const trimmedText = trimmedRows.join(",");
+      setCsvContent(trimmedText);
+    };
+    reader.readAsText(file);
+  }
+};
   return (
     <form
       action={sendMail}

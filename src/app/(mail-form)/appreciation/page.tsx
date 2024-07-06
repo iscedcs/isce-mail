@@ -60,26 +60,22 @@ export default function AppreciationForm() {
     });
   };
 
-  const handleFileUpload = (event: any) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        const trimmedText = text
-          .split(",")
-          .map((row) =>
-            row
-              .split(",")
-              .map((cell) => cell.trim())
-              .join(",")
-          )
-          .join(",");
-        setCsvContent(trimmedText);
-      };
-      reader.readAsText(file);
-    }
-  };
+const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const rows = text.split("\n").map((row) => row.split(","));
+      const trimmedRows = rows.map((row) =>
+        row.map((cell) => cell.trim()).join(",")
+      );
+      const trimmedText = trimmedRows.join(",");
+      setCsvContent(trimmedText);
+    };
+    reader.readAsText(file);
+  }
+};
   return (
     <form
       action={sendMail}
@@ -232,8 +228,6 @@ export default function AppreciationForm() {
             required
           />
         </div>
-        {error && <div className="text-destructive ">{error}</div>}
-        {success && <div className="text-emerald-600 ">{success}</div>}
       </div>
       <div className="space-y-2">
         <Label className="flex gap-1.5 items-center" htmlFor="emails">
@@ -251,13 +245,15 @@ export default function AppreciationForm() {
         </Label>
         <CSVUploader handleUpload={handleFileUpload} />
       </div>
-      <Button type="submit" size="lg" disabled={isPending}>
-        {isPending ? (
-          <LoaderCircle className="animate-spin h-4 w-4" />
-        ) : (
-          "Send Emails"
-        )}
-      </Button>
+      {error && <div className="text-destructive ">{error}</div>}
+      {success && <div className="text-emerald-600 ">{success}</div>}
+        <Button type="submit" size="lg" disabled={isPending}>
+          {isPending ? (
+            <LoaderCircle className="animate-spin h-4 w-4" />
+          ) : (
+            "Send Emails"
+          )}
+        </Button>
     </form>
   );
 }
