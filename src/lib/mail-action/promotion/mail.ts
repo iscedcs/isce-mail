@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import ISCEPromotionMail from "../../../../emails/templates/isce/promotion";
 import PtPromotionMail from "../../../../emails/templates/palmtechniq/promotion";
+import { ReactNode } from "react";
 
 export const revalidate = 0;
 
@@ -21,9 +22,7 @@ export const sendEmail = async (
     from:
       basis === "ISCE"
         ? "ISCE Team <support@palmtechniq.com>"
-        : basis === "PalmTechniq"
-        ? "PalmTechnIQ Team <support@palmtechniq.com>"
-        : "ISCE Team <support@striferral.com>", // support@isce.tech
+        : "PalmTechnIQ Team <support@palmtechniq.com>", // support@isce.tech
     to: email,
     subject,
     react:
@@ -34,16 +33,9 @@ export const sendEmail = async (
             link: link,
             image: image,
           })
-        : basis === "PalmTechniq"
-        ? PtPromotionMail({
+        : PtPromotionMail({
             headerText: headerText,
             message: message,
-            link: link,
-            image: image,
-          })
-        : ISCEPromotionMail({
-            message: message,
-            headerText: headerText,
             link: link,
             image: image,
           }),

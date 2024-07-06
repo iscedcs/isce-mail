@@ -21,12 +21,12 @@ export default function Templatecard({
             src={image}
             alt="description"
           />
-          <h1 className="font-bold mt-[20px]" >{label}</h1>
+          <h1 className="font-bold text-[19px] mt-[20px]" >{label}</h1>
         </CardHeader>
         <CardContent>{desc}</CardContent>
         <CardFooter>
           <Button className="bg-black" asChild >
-            <Link  href={link}>Use Template</Link>
+            <Link className=" no-underline "  href={link}>Use Template</Link>
           </Button>
         </CardFooter>
       </Card>

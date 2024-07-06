@@ -17,6 +17,8 @@ import { IBasis } from "@/lib/mail-action/event/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import CSVUploader from "@/components/shared/csv-uploader";
+import Editor from "@/components/shared/editor-component/editor";
+
 
 export interface IEventsForm {
   subject: string;
@@ -30,6 +32,7 @@ export interface IEventsForm {
 }
 
 export default function EventsForm() {
+  const [editorContent, setEditorContent] = useState<string>("");
   const [csvContent, setCsvContent] = useState<string>("");
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
@@ -247,19 +250,16 @@ export default function EventsForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="message">Message</Label>
-          <Textarea
+          <Label htmlFor="message">Message - Editor</Label>
+          <Editor
+            defaultValue={(form.message = editorContent)}
             onChange={(e) => {
-              setForm({
+              return setForm({
                 ...form,
                 message: e.target.value,
               });
             }}
-            className="min-h-[200px]"
-            id="message"
-            placeholder="Enter your email message"
-            required
-            defaultValue={form.message}
+            setContent={setEditorContent}
           />
         </div>
         <div className="space-y-2">

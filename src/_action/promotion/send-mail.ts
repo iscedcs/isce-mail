@@ -1,6 +1,8 @@
 'use server';
 
 import { IBasis, sendEmail } from "@/lib/mail-action/promotion/mail";
+import { ReactNode } from "react";
+
 
 export const sendMailAction = async (formData: {
   subject: string;

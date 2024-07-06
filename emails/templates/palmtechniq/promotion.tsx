@@ -14,7 +14,7 @@ import {
   Tailwind,
   Preview,
 } from "@react-email/components";
-import React from "react";
+import parse  from "html-react-parser";
 
 interface PtPromotionMailProps {
   message: string;
@@ -33,6 +33,8 @@ const PtPromotionMail = ({
   image,
   headerText,
 }: PtPromotionMailProps) => {
+  const santizedHTML = parse(message)
+
   return (
     <Tailwind>
       <Html>
@@ -61,11 +63,7 @@ const PtPromotionMail = ({
                   {headerText}
                 </Text>
               </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
-              </Section>
+              <Section>{santizedHTML}</Section>
               <Section className="text-center">
                 <Button
                   href={link}

@@ -1,13 +1,12 @@
-import PtPromotionMail from "../../../emails/templates/palmtechniq/promotion";
-import React from "react";
+"use client";
+import Editor from "@/components/shared/editor-component/editor";
+import React, { useState } from "react";
 
-export default function SamplePage() {
+export default function Sample() {
+  const [editorContent, setEditorContent] = useState("");
   return (
-    <PtPromotionMail
-      image="static/dummy-images/image-5.png"
-      link="isce.app"
-      message="a message that is very long"
-      headerText="lol"
-    />
+    <div>
+      <Editor onChange={()=>{}} setContent={setEditorContent} />
+    </div>
   );
 }

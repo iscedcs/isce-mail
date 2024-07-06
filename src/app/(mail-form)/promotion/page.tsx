@@ -2,6 +2,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import Editor from "@/components/shared/editor-component/editor";
 import {
   SelectValue,
   SelectTrigger,
@@ -10,7 +11,7 @@ import {
   Select,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState, useTransition } from "react";
+import { JSX, ReactNode, useState, useTransition } from "react";
 import { sendMailAction } from "@/_action/promotion/send-mail";
 import { AlertCircleIcon, LoaderCircle } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/promotion/mail";
@@ -30,6 +31,7 @@ export interface IPromotionsForm {
 
 export default function PromotionForm() {
   const [csvContent, setCsvContent] = useState<string>("");
+  const [editorContent, setEditorContent] = useState<string>("");
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
@@ -81,6 +83,9 @@ export default function PromotionForm() {
   return (
     <form
       action={sendMail}
+      onChange={() => {
+        console.log(form.message);
+      }}
       className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10"
     >
       <div className="space-y-2">
@@ -214,19 +219,16 @@ export default function PromotionForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="message">Message</Label>
-          <Textarea
+          <Label htmlFor="message">Message - Editor</Label>
+          <Editor
+            defaultValue={(form.message = editorContent)}
             onChange={(e) => {
-              setForm({
+              return setForm({
                 ...form,
                 message: e.target.value,
               });
             }}
-            className="min-h-[200px]"
-            id="message"
-            placeholder="Enter your email message"
-            required
-            defaultValue={form.message}
+            setContent={setEditorContent}
           />
         </div>
         <div className="space-y-2">
@@ -285,3 +287,7 @@ export default function PromotionForm() {
     </form>
   );
 }
+function renderToString(arg0: JSX.Element) {
+  throw new Error("Function not implemented.");
+}
+

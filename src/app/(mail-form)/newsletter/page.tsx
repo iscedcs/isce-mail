@@ -17,6 +17,7 @@ import { IBasis } from "@/lib/mail-action/newsletter/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import CSVUploader from "@/components/shared/csv-uploader";
+import Editor from "@/components/shared/editor-component/editor";
 
 export interface INewsLetterForm {
   subject: string;
@@ -30,6 +31,7 @@ export interface INewsLetterForm {
 
 export default function NewsLetterForm() {
   const [csvContent, setCsvContent] = useState<string>("");
+  const [editorContent, setEditorContent] = useState<string>("");
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
@@ -218,19 +220,16 @@ export default function NewsLetterForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="message">Message</Label>
-          <Textarea
+          <Label htmlFor="message">Message - Editor</Label>
+          <Editor
+            defaultValue={(form.message = editorContent)}
             onChange={(e) => {
-              setForm({
+              return setForm({
                 ...form,
                 message: e.target.value,
               });
             }}
-            className="min-h-[200px]"
-            id="message"
-            placeholder="Enter your email message"
-            required
-            defaultValue={form.message}
+            setContent={setEditorContent}
           />
         </div>
         <div className="space-y-2">

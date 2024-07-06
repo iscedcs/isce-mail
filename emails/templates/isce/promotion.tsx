@@ -14,7 +14,7 @@ import {
   Tailwind,
   Preview,
 } from "@react-email/components";
-import React from "react";
+import React, { ReactNode } from "react";
 
 interface ISCEPromotionMailProps {
   message: string;
@@ -61,10 +61,7 @@ const ISCEPromotionMail = ({
                   {headerText}
                 </Text>
               </Section>
-              <Section>
-                <Text className="xl:px-0 lg:px-0 text-left px-[20px]">
-                  {message}
-                </Text>
+              <Section>{message}
               </Section>
               <Section className="text-center">
                 <Button
