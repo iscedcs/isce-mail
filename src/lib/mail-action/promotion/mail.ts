@@ -17,25 +17,27 @@ export const sendEmail = async (
   link: string,
   image: string
 ) => {
-  resend.emails.send({
-    from:
-      basis === "ISCE"
-        ? "ISCE Team <support@palmtechniq.com>"
-        : "PalmTechnIQ Team <support@palmtechniq.com>", // support@isce.tech
-    to: email,
-    subject,
-    react:
-      basis === "ISCE"
-        ? ISCEPromotionMail({
-            message: message,
-            link: link,
-            image: image,
-          })
-        : PtPromotionMail({
-            message: message,
-            link: link,
-            image: image,
-          }),
-  });
+  resend.batch.send([
+    {
+      from:
+        basis === "ISCE"
+          ? "ISCE Team <support@palmtechniq.com>"
+          : "PalmTechnIQ Team <support@palmtechniq.com>", // support@isce.tech
+      to: email,
+      subject,
+      react:
+        basis === "ISCE"
+          ? ISCEPromotionMail({
+              message: message,
+              link: link,
+              image: image,
+            })
+          : PtPromotionMail({
+              message: message,
+              link: link,
+              image: image,
+            }),
+    },
+  ]);
 };
 

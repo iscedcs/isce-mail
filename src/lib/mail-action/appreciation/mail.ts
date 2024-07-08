@@ -14,20 +14,22 @@ export const sendEmail = async (
   basis: IBasis,
   message: string
 ) => {
-  resend.emails.send({
-    from:
-      basis === "ISCE"
-        ? "ISCE Team <support@palmtechniq.com>"
-        : basis === "PalmTechniq"
-        ? "PalmTechnIQ Team <support@palmtechniq.com>"
-        : "ISCE Team <support@striferral.com>", // support@isce.tech
-    to: email,
-    subject,
-    react:
-      basis === "ISCE"
-        ? ISCEAppreciationMail({ message: message })
-        : PtAppreciationMail({
-            message: message,
-          }),
-  });
+  resend.batch.send([
+    {
+      from:
+        basis === "ISCE"
+          ? "ISCE Team <support@palmtechniq.com>"
+          : basis === "PalmTechniq"
+          ? "PalmTechnIQ Team <support@palmtechniq.com>"
+          : "ISCE Team <support@striferral.com>", // support@isce.tech
+      to: email,
+      subject,
+      react:
+        basis === "ISCE"
+          ? ISCEAppreciationMail({ message: message })
+          : PtAppreciationMail({
+              message: message,
+            }),
+    },
+  ]);
 };

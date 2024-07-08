@@ -16,29 +16,31 @@ export const sendEmail = async (
   message: string,
   image: string
 ) => {
-  resend.emails.send({
-    from:
-      basis === "ISCE"
-        ? "ISCE Team <support@palmtechniq.com>"
-        : basis === "PalmTechniq"
-        ? "PalmTechnIQ Team <support@palmtechniq.com>"
-        : "ISCE Team <support@striferral.com>", // support@isce.tech
-    to: email,
-    subject,
-    react:
-      basis === "ISCE"
-        ? ISCEHolidayMail({
-            message: message,
-            image: image,
-          })
-        : basis === "PalmTechniq"
-        ? PtHolidayMail({
-            message: message,
-            image: image,
-          })
-        : ISCEHolidayMail({
-            message: message,
-            image: image,
-          }),
-  });
+  resend.batch.send([
+    {
+      from:
+        basis === "ISCE"
+          ? "ISCE Team <support@palmtechniq.com>"
+          : basis === "PalmTechniq"
+          ? "PalmTechnIQ Team <support@palmtechniq.com>"
+          : "ISCE Team <support@striferral.com>", // support@isce.tech
+      to: email,
+      subject,
+      react:
+        basis === "ISCE"
+          ? ISCEHolidayMail({
+              message: message,
+              image: image,
+            })
+          : basis === "PalmTechniq"
+          ? PtHolidayMail({
+              message: message,
+              image: image,
+            })
+          : ISCEHolidayMail({
+              message: message,
+              image: image,
+            }),
+    },
+  ]);
 };
