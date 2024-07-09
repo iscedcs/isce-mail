@@ -211,7 +211,9 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
             </TooltipProvider>
           </Label>
           <Textarea
-            defaultValue={(form.emails = csvContent)}
+            defaultValue={
+              !csvContent ? form.emails : (form.emails = csvContent)
+            }
             onChange={(e) => {
               setForm({
                 ...form,

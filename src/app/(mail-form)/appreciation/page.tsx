@@ -216,7 +216,9 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
             </TooltipProvider>
           </Label>
           <Textarea
-            defaultValue={(form.emails = csvContent)}
+            defaultValue={
+              !csvContent ? form.emails : (form.emails = csvContent)
+            }
             onChange={(e) => {
               setForm({
                 ...form,
@@ -247,13 +249,13 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
       </div>
       {error && <div className="text-destructive ">{error}</div>}
       {success && <div className="text-emerald-600 ">{success}</div>}
-        <Button type="submit" size="lg" disabled={isPending}>
-          {isPending ? (
-            <LoaderCircle className="animate-spin h-4 w-4" />
-          ) : (
-            "Send Emails"
-          )}
-        </Button>
+      <Button type="submit" size="lg" disabled={isPending}>
+        {isPending ? (
+          <LoaderCircle className="animate-spin h-4 w-4" />
+        ) : (
+          "Send Emails"
+        )}
+      </Button>
     </form>
   );
 }
