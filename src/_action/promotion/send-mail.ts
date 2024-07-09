@@ -28,8 +28,20 @@ export const sendMailAction = async (formData: {
         console.log({ a });
       })
     );
-    console.log(`Emails sent to ${emailArray.length} emails`);
-    return { success: `Emails sent to ${emailArray.length} emails` };
+    console.log(
+      `Email sent to ${
+        emailArray.length == 1
+          ? `${emailArray.length} email address`
+          : `${emailArray.length} email addresses`
+      }`
+    );
+    return {
+      success: `Email sent to ${
+        emailArray.length == 1
+          ? `${emailArray.length} email address`
+          : `${emailArray.length} email addresses`
+      }`,
+    };
   } catch (error) {
     return { error: `Something went wrong` };
   }
