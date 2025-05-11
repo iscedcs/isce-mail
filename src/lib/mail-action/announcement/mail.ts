@@ -16,7 +16,14 @@ export const sendEmail = async (
   message: string,
   link: string
 ) => {
-  palmtechniq_resend.batch.send([
+  const resendInstance =
+    basis === "ISCE"
+      ? isce_resend
+      : basis === "PalmTechniq"
+      ? palmtechniq_resend
+      : isce_resend;
+
+  resendInstance.batch.send([
     {
       from:
         basis === "ISCE"

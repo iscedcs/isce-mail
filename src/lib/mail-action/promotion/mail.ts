@@ -5,7 +5,8 @@ import { ReactNode } from "react";
 
 export const revalidate = 0;
 
-const resend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
+const palmtechniq_resend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
+const isce_resend = new Resend(process.env.ISCE_RESEND_API_KEY);
 const domain = process.env.VERCEL_URL;
 export type IBasis = "ISCE" | "PalmTechniq";
 
@@ -17,7 +18,14 @@ export const sendEmail = async (
   link: string,
   image: string
 ) => {
-  resend.batch.send([
+  const resendInstance =
+    basis === "ISCE"
+      ? isce_resend
+      : basis === "PalmTechniq"
+      ? palmtechniq_resend
+      : isce_resend;
+
+  resendInstance.batch.send([
     {
       from:
         basis === "ISCE"
