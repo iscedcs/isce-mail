@@ -5,6 +5,7 @@ import ISCEAnnouncementMail from "../../../../emails/templates/isce/announcement
 export const revalidate = 0;
 
 const palmtechniq_resend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
+const isce_resend = new Resend(process.env.ISCE_RESEND_API_KEY);
 const domain = process.env.VERCEL_URL;
 export type IBasis = "ISCE" | "PalmTechniq";
 
