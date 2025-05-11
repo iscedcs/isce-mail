@@ -14,6 +14,7 @@ import Link from "@tiptap/extension-link";
 import TextStyle from "@tiptap/extension-text-style";
 import ListItem from "@tiptap/extension-list-item";
 import { Color } from "@tiptap/extension-color";
+import DOMPurify from "dompurify";
 
 interface IEditorProps {
   setContent: Dispatch<SetStateAction<string>>;
@@ -52,6 +53,7 @@ const Editor = ({ setContent, onChange }: IEditorProps) => {
     onUpdate: ({ editor }) => {
       setContent(editor.getHTML());
     },
+
   });
   
 

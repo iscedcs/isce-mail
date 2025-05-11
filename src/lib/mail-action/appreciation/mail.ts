@@ -4,7 +4,7 @@ import ISCEAppreciationMail from "../../../../emails/templates/isce/appreciation
 
 export const revalidate = 0;
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
 const domain = process.env.VERCEL_URL;
 export type IBasis = "ISCE" | "PalmTechniq";
 

@@ -28,6 +28,7 @@ const baseUrl = process.env.VERCEL_URL
 
 const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
   const santizedHTML = parse(message);
+  const date = new Date().getFullYear();
 
   return (
     <Tailwind>
@@ -58,15 +59,11 @@ const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
               <Hr className="mt-[30px]" />
               <Section className="text-left pt-[20px] px-[40px] bg-black text-[#ffffff]">
                 <Text>
-                  <p>
-                    You are recieving this mail because you opted in via our
-                    website.
-                  </p>
-                  <p>Copyright © 2024: ISCE, All Rights Reserved.</p>
+                  <p>Copyright © {date}: ISCE, All Rights Reserved.</p>
                 </Text>
               </Section>
               <Section className="pb-[40px] px-[25px] bg-black text-left ">
-                <Button
+                {/* <Button
                   href="/"
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
@@ -76,7 +73,7 @@ const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
                     alt="facebook"
                     src={`https://cdn-icons-png.flaticon.com/128/3128/3128208.png`}
                   />
-                </Button>
+                </Button> */}
                 <Button
                   href="/"
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "

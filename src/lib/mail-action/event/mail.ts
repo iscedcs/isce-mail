@@ -4,7 +4,7 @@ import ISCEEventMail from "../../../../emails/templates/isce/events";
 
 export const revalidate = 0;
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
 const domain = process.env.VERCEL_URL;
 export type IBasis = "ISCE" | "PalmTechniq";
 
@@ -13,7 +13,7 @@ export const sendEmail = async (
   subject: string,
   basis: IBasis,
   message: string,
-  link: string,
+  link: string
 ) => {
   resend.batch.send([
     {
