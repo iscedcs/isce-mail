@@ -25,6 +25,8 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const SignIn = ({ fullName = "Nweke Ifeagwu" }: SignInProps) => {
+  const date = new Date().getFullYear();
+
   return (
     <Tailwind>
       <Html>
@@ -84,11 +86,8 @@ const SignIn = ({ fullName = "Nweke Ifeagwu" }: SignInProps) => {
               <Hr className="mt-[30px]" />
               <Section className="text-center text-[#333333]">
                 <Text>
-                  <p>Copyright © 2024 PalmTechnIQ, All Rights Reserved.</p>
-                  <p>
-                    You are recieving this mail because you opted in via our
-                    website.
-                  </p>
+                  <p>Copyright © {date} PalmTechnIQ, All Rights Reserved.</p>
+
                   <p>
                     Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
                     Building, 22Rd ,Festac Town, Lagos, Nigeria.

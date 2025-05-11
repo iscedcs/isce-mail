@@ -17,7 +17,6 @@ import {
 import React from "react";
 import parse from "html-react-parser";
 
-
 interface PtSurveyMailProps {
   message: string;
   link: string;
@@ -28,7 +27,8 @@ const baseUrl = process.env.VERCEL_URL
   : "/static";
 
 const PtSurveyMail = ({ message, link }: PtSurveyMailProps) => {
-    const santizedHTML = parse(message);
+  const santizedHTML = parse(message);
+  const date = new Date().getFullYear();
 
   return (
     <Tailwind>
@@ -66,11 +66,8 @@ const PtSurveyMail = ({ message, link }: PtSurveyMailProps) => {
               <Hr className="mt-[30px]" />
               <Section className="text-center text-[#333333]">
                 <Text>
-                  <p>Copyright © 2024 PalmTechnIQ, All Rights Reserved.</p>
-                  <p>
-                    You are recieving this mail because you opted in via our
-                    website.
-                  </p>
+                  <p>Copyright © {date} PalmTechnIQ, All Rights Reserved.</p>
+
                   <p>
                     Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
                     Building, 22Rd ,Festac Town, Lagos, Nigeria.
@@ -79,7 +76,7 @@ const PtSurveyMail = ({ message, link }: PtSurveyMailProps) => {
               </Section>
               <Section className="pb-[40px] text-center ">
                 <Button
-                  href="https://web.facebook.com/profile.php?id=61560523394595"
+                  href="https://www.facebook.com/profile.php?id=61560523394595"
                   className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
@@ -90,18 +87,7 @@ const PtSurveyMail = ({ message, link }: PtSurveyMailProps) => {
                   />
                 </Button>
                 <Button
-                  href="https://www.linkedin.com/in/palm-techniq-03839b313/"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
-                >
-                  <Img
-                    width="23"
-                    height="23"
-                    alt="linkedin"
-                    src={`https://static-00.iconduck.com/assets.00/linkedin-icon-512x512-a7sf08js.png`}
-                  />
-                </Button>
-                <Button
-                  href="https://www.instagram.com/palmtechniq/"
+                  href="https://www.instagram.com/palmtechniq?igsh=MXVxMjJjMmxnZ3hzag=="
                   className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img

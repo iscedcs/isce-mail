@@ -75,7 +75,7 @@ const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
                   />
                 </Button> */}
                 <Button
-                  href="/"
+                  href="https://www.linkedin.com/company/isceapp/"
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
@@ -86,7 +86,7 @@ const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
                   />
                 </Button>
                 <Button
-                  href="/"
+                  href="https://www.instagram.com/isce.tech?igsh=MXYzc3U2b3EyendzaA=="
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
@@ -97,7 +97,7 @@ const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
                   />
                 </Button>
                 <Button
-                  href="/"
+                  href="https://x.com/isceapp?t=P4zRw8-h8c0-2H8eGMKJaA&s=09"
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img

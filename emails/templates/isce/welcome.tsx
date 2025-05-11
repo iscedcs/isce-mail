@@ -28,6 +28,7 @@ const baseUrl = process.env.VERCEL_URL
 
 const ISCEWelcomeMail = ({ message, link }: ISCEWelcomeMailProps) => {
   const santizedHTML = parse(message);
+  const date = new Date().getFullYear();
 
   return (
     <Tailwind>
@@ -66,27 +67,12 @@ const ISCEWelcomeMail = ({ message, link }: ISCEWelcomeMailProps) => {
               <Hr className="mt-[30px]" />
               <Section className="text-left pt-[20px] px-[40px] bg-black text-[#ffffff]">
                 <Text>
-                  <p>
-                    You are recieving this mail because you opted in via our
-                    website.
-                  </p>
-                  <p>Copyright © 2024: ISCE, All Rights Reserved.</p>
+                  <p>Copyright © {date}: ISCE, All Rights Reserved.</p>
                 </Text>
               </Section>
               <Section className="pb-[40px] px-[25px] bg-black text-left ">
                 <Button
-                  href="/"
-                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
-                >
-                  <Img
-                    width="18"
-                    height="18"
-                    alt="facebook"
-                    src={`https://cdn-icons-png.flaticon.com/128/3128/3128208.png`}
-                  />
-                </Button>
-                <Button
-                  href="/"
+                  href="https://www.linkedin.com/company/isceapp/"
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
@@ -97,7 +83,7 @@ const ISCEWelcomeMail = ({ message, link }: ISCEWelcomeMailProps) => {
                   />
                 </Button>
                 <Button
-                  href="/"
+                  href="https://www.instagram.com/isce.tech?igsh=MXYzc3U2b3EyendzaA=="
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
@@ -108,7 +94,7 @@ const ISCEWelcomeMail = ({ message, link }: ISCEWelcomeMailProps) => {
                   />
                 </Button>
                 <Button
-                  href="/"
+                  href="https://x.com/isceapp?t=P4zRw8-h8c0-2H8eGMKJaA&s=09"
                   className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
                 >
                   <Img
