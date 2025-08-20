@@ -19,13 +19,16 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import CSVUploader from "@/components/shared/csv-uploader";
 import Editor from "@/components/shared/editor-component/editor";
 
-
+export interface IRecipient {
+  email: string;
+  firstname: string;
+}
 export interface IEventsForm {
   subject: string;
   basis: IBasis;
   message: string;
   image: string;
-  emails: string;
+  recipients: IRecipient[];
   link: string;
 }
 
@@ -40,7 +43,7 @@ export default function EventsForm() {
     basis: "ISCE",
     message: "",
     image: "",
-    emails: "",
+    recipients: [],
     link: "",
   });
 
@@ -59,27 +62,35 @@ export default function EventsForm() {
     });
   };
 
-const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const rows = text.split("\n").map((row) => row.split(","));
-      const trimmedRows = rows.map((row) =>
-        row.map((cell) => cell.trim()).join(",")
-      );
-      const trimmedText = trimmedRows.join(",");
-      setCsvContent(trimmedText);
-    };
-    reader.readAsText(file);
-  }
-};
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const rows = text.split("\n").map((row) => row.split(","));
+        const recipients = rows
+          .map((row) => ({
+            email: row[0]?.trim() || "",
+            firstname: row[1]?.trim() || "",
+          }))
+          .filter((recipient) => recipient.email && recipient.firstname);
+        setForm({
+          ...form,
+          recipients,
+        });
+      };
+      reader.readAsText(file);
+    }
+  };
   return (
     <form
       action={sendMail}
-      className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10"
-    >
+      className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Events - Send emails</h1>
         <p className="text-gray-500 dark:text-gray-400">
@@ -125,8 +136,7 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
                 ...form,
                 basis: e,
               });
-            }}
-          >
+            }}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a basis" />
             </SelectTrigger>
@@ -212,17 +222,27 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
             </TooltipProvider>
           </Label>
           <Textarea
-            defaultValue={
-              !csvContent ? form.emails : (form.emails = csvContent)
-            }
+            defaultValue={form.recipients
+              .map((r) => `${r.email},${r.firstname}`)
+              .join("\n")}
             onChange={(e) => {
+              const recipients = e.target.value
+                .split("\n")
+                .map((line) => {
+                  const [email, firstname] = line.split(",");
+                  return {
+                    email: email?.trim() || "",
+                    firstname: firstname?.trim() || "",
+                  };
+                })
+                .filter((r) => r.email && r.firstname);
               setForm({
                 ...form,
-                emails: e.target.value,
+                recipients,
               });
             }}
             id="emails"
-            placeholder="Enter email addresses separated by commas"
+            placeholder="Enter email addresses and names (format: email,firstname) separated by new lines"
             required
           />
         </div>
