@@ -22,6 +22,7 @@ import Editor from "@/components/shared/editor-component/editor";
 export interface IRecipient {
   email: string;
   firstname: string;
+  url?: string;
 }
 export interface IEventsForm {
   subject: string;
@@ -47,6 +48,66 @@ export default function EventsForm() {
     link: "",
   });
 
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const isValidUrl = (url: string): boolean => {
+    if (!url) return true; // URL is optional
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const rows = text.split("\n").map((row) => row.split(","));
+
+        const headers = rows[0].map((h) => h.trim().toLowerCase());
+        const emailCol =
+          headers.indexOf("email") !== -1
+            ? headers.indexOf("email")
+            : headers.indexOf("email_address");
+        const firstnameCol =
+          headers.indexOf("firstname") !== -1
+            ? headers.indexOf("firstname")
+            : headers.indexOf("first_name");
+        const urlCol =
+          headers.indexOf("url") !== -1 ? headers.indexOf("url") : -1;
+
+        const recipients = rows
+          .slice(1)
+          .map((row) => ({
+            email: row[emailCol]?.trim() || "",
+            firstname: row[firstnameCol]?.trim() || "",
+            url: urlCol !== -1 ? row[urlCol]?.trim() || "" : "", // Handle optional url
+          }))
+          .filter(
+            (recipient) =>
+              isValidEmail(recipient.email) &&
+              recipient.firstname &&
+              isValidUrl(recipient.url) &&
+              !form.recipients.some(
+                (existing) => existing.email === recipient.email
+              )
+          );
+        setForm({
+          ...form,
+          recipients: [...form.recipients, ...recipients],
+        });
+      };
+      reader.readAsText(file);
+    }
+  };
+
   const sendMail = async () => {
     startTransition(() => {
       sendMailAction(form)
@@ -62,31 +123,6 @@ export default function EventsForm() {
     });
   };
 
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        const rows = text.split("\n").map((row) => row.split(","));
-        const recipients = rows
-          .map((row) => ({
-            email: row[0]?.trim() || "",
-            firstname: row[1]?.trim() || "",
-          }))
-          .filter((recipient) => recipient.email && recipient.firstname);
-        setForm({
-          ...form,
-          recipients,
-        });
-      };
-      reader.readAsText(file);
-    }
-  };
   return (
     <form
       action={sendMail}
@@ -94,8 +130,10 @@ export default function EventsForm() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Events - Send emails</h1>
         <p className="text-gray-500 dark:text-gray-400">
-          Enter your email subject, message and select the basis of your email.
-          Attach a CSV file with your recipients&apos; email addresses.
+          Enter your email subject, message, and select the basis of your email.
+          Attach a CSV file with recipients&apos; email addresses, first names,
+          and optional URLs (format: email,firstname,url). Use {"{{firstname}}"}{" "}
+          or {"{{url}}"} in the message for personalization.
         </p>
       </div>
       <div className="space-y-4">
@@ -209,40 +247,55 @@ export default function EventsForm() {
         </div>
         <div className="space-y-2">
           <Label className="flex gap-1.5 items-center" htmlFor="emails">
-            Email(s){" "}
+            Email(s), Name(s), and URL(s) (Optional){" "}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
                   <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
                 </TooltipTrigger>
                 <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
-                  <p>Multiple emails are seperated by a comma.</p>
+                  <p>
+                    {" "}
+                    Enter email addresses, names, and optional URLs (format:
+                    email,firstname,url) separated by new lines.
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </Label>
           <Textarea
             defaultValue={form.recipients
-              .map((r) => `${r.email},${r.firstname}`)
+              .map(
+                (r) => `${r.email},${r.firstname}${r.url ? `,${r.url}` : ""}`
+              )
               .join("\n")}
             onChange={(e) => {
               const recipients = e.target.value
                 .split("\n")
                 .map((line) => {
-                  const [email, firstname] = line.split(",");
+                  const [email, firstname, url] = line.split(",");
                   return {
                     email: email?.trim() || "",
                     firstname: firstname?.trim() || "",
+                    url: url?.trim() || "",
                   };
                 })
-                .filter((r) => r.email && r.firstname);
+                .filter(
+                  (r) =>
+                    isValidEmail(r.email) &&
+                    r.firstname &&
+                    isValidUrl(r.url) &&
+                    !form.recipients.some(
+                      (existing) => existing.email === r.email
+                    )
+                );
               setForm({
                 ...form,
-                recipients,
+                recipients: [...form.recipients, ...recipients],
               });
             }}
             id="emails"
-            placeholder="Enter email addresses and names (format: email,firstname) separated by new lines"
+            placeholder="Enter email addresses, names, and optional URLs (format: email,firstname,url) separated by new lines"
             required
           />
         </div>
@@ -255,7 +308,11 @@ export default function EventsForm() {
                   <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
                 </TooltipTrigger>
                 <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
-                  <p>Upload a CSV file containing the emails.</p>
+                  <p>
+                    {" "}
+                    Upload a CSV file with emails, first names, and optional
+                    URLs (format: email,firstname,url).
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

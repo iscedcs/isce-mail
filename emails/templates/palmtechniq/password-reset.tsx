@@ -60,8 +60,7 @@ const PasswordReset = ({
                 <Button
                   href="https://wa.me/qr/GHKMMDKEJZNEF1" /*Admin whatsapp link*/
                   className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "
-                  style={{ padding: "10px 20px", margin: "0 auto" }}
-                >
+                  style={{ padding: "10px 20px", margin: "0 auto" }}>
                   Reset Password
                 </Button>
               </Section>
@@ -80,38 +79,45 @@ const PasswordReset = ({
                   </p>
                 </Text>
               </Section>
-              <Section className="pb-[40px] text-center ">
+              <Section className="pb-[40px] text-center">
                 <Button
-                  href="/"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  href="https://www.facebook.com/profile.php?id=61561459226438&mibextid=ZbWKwL"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
                   <Img
                     width="23"
                     height="23"
-                    alt="facebook"
+                    alt="PalmTechnIQ"
                     src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/facebook-app-round-white-icon.png`}
                   />
                 </Button>
                 <Button
-                  href="/"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  href="https://www.linkedin.com/company/palmtechniq/"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
                   <Img
                     width="23"
                     height="23"
-                    alt="facebook"
-                    src={`https://static-00.iconduck.com/assets.00/linkedin-icon-512x512-a7sf08js.png`}
+                    alt="linkedin"
+                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/linkedin-app-icon.png`}
                   />
                 </Button>
                 <Button
-                  href="/"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  href="https://www.instagram.com/palmtechniq/"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
                   <Img
                     width="23"
                     height="23"
-                    alt="facebook"
-                    src={`https://static-00.iconduck.com/assets.00/instagram-icon-256x256-ubgz701g.png`}
+                    alt="instagram"
+                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/ig-instagram-icon.png`}
+                  />
+                </Button>
+                <Button
+                  href="https://app.slack.com/client/T076LDT7109/C0764SE3VB7"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
+                  <Img
+                    width="23"
+                    height="23"
+                    alt="slack"
+                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/slack-icon.png`}
                   />
                 </Button>
               </Section>

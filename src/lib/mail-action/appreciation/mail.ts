@@ -13,7 +13,8 @@ export const sendEmail = async (
   email: string,
   subject: string,
   basis: IBasis,
-  message: string
+  message: string,
+  link: string
 ) => {
   const resendInstance =
     basis === "ISCE"
@@ -37,6 +38,7 @@ export const sendEmail = async (
           ? ISCEAppreciationMail({ message: message })
           : PtAppreciationMail({
               message: message,
+              link: link,
             }),
     },
   ]);

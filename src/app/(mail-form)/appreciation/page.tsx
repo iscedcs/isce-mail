@@ -19,13 +19,18 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import CSVUploader from "@/components/shared/csv-uploader";
 import Editor from "@/components/shared/editor-component/editor";
 
+export interface IRecipient {
+  email: string;
+  firstname: string;
+  url?: string;
+}
 
 export interface IAppreciationForm {
   subject: string;
   basis: IBasis;
   message: string;
   image: string;
-  emails: string;
+  recipients: IRecipient[];
   link: string;
 }
 
@@ -41,9 +46,69 @@ export default function AppreciationForm() {
     basis: "ISCE",
     message: "",
     image: "",
-    emails: "",
+    recipients: [],
     link: "",
   });
+
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const isValidUrl = (url: string): boolean => {
+    if (!url) return true; // URL is optional
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const rows = text.split("\n").map((row) => row.split(","));
+
+        const headers = rows[0].map((h) => h.trim().toLowerCase());
+        const emailCol =
+          headers.indexOf("email") !== -1
+            ? headers.indexOf("email")
+            : headers.indexOf("email_address");
+        const firstnameCol =
+          headers.indexOf("firstname") !== -1
+            ? headers.indexOf("firstname")
+            : headers.indexOf("first_name");
+        const urlCol =
+          headers.indexOf("url") !== -1 ? headers.indexOf("url") : -1;
+
+        const recipients = rows
+          .slice(1)
+          .map((row) => ({
+            email: row[emailCol]?.trim() || "",
+            firstname: row[firstnameCol]?.trim() || "",
+            url: urlCol !== -1 ? row[urlCol]?.trim() || "" : "", // Handle optional url
+          }))
+          .filter(
+            (recipient) =>
+              isValidEmail(recipient.email) &&
+              recipient.firstname &&
+              isValidUrl(recipient.url) &&
+              !form.recipients.some(
+                (existing) => existing.email === recipient.email
+              )
+          );
+        setForm({
+          ...form,
+          recipients: [...form.recipients, ...recipients],
+        });
+      };
+      reader.readAsText(file);
+    }
+  };
 
   const sendMail = async () => {
     startTransition(() => {
@@ -60,32 +125,17 @@ export default function AppreciationForm() {
     });
   };
 
-const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const rows = text.split("\n").map((row) => row.split(","));
-      const trimmedRows = rows.map((row) =>
-        row.map((cell) => cell.trim()).join(",")
-      );
-      const trimmedText = trimmedRows.join(",");
-      setCsvContent(trimmedText);
-    };
-    reader.readAsText(file);
-  }
-};
   return (
     <form
       action={sendMail}
-      className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10"
-    >
+      className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Appreciation - Send emails</h1>
         <p className="text-gray-500 dark:text-gray-400">
-          Enter your email subject, message and select the basis of your email.
-          Attach a CSV file with your recipients&apos; email addresses.
+          Enter your email subject, message, and select the basis of your email.
+          Attach a CSV file with recipients&apos; email addresses, first names,
+          and optional URLs (format: email,firstname,url). Use {"{{firstname}}"}{" "}
+          or {"{{url}}"} in the message for personalization.
         </p>
       </div>
       <div className="space-y-4">
@@ -126,8 +176,7 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
                 ...form,
                 basis: e,
               });
-            }}
-          >
+            }}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a basis" />
             </SelectTrigger>
@@ -157,19 +206,19 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         <div className="space-y-2">
           <Label
             className="flex gap-1.5 items-center text-[#949494] "
-            htmlFor="link"
-          >
+            htmlFor="link">
             Link{" "}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
                   <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
                 </TooltipTrigger>
-                {/* <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
                   <p>
-                    Enter the link that directs users what you are promoting.
+                    Enter the link that directs users to the location of the
+                    event. Could be a pre-set meeting link or a waitlist form.
                   </p>
-                </TooltipContent> */}
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </Label>
@@ -183,8 +232,6 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
             id="link"
             type="url"
             placeholder="Enter the link"
-            required
-            disabled
             defaultValue={form.link}
           />
         </div>
@@ -203,30 +250,55 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         </div>
         <div className="space-y-2">
           <Label className="flex gap-1.5 items-center" htmlFor="emails">
-            Email(s){" "}
+            Email(s), Name(s), and URL(s) (Optional){" "}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
                   <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
                 </TooltipTrigger>
                 <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
-                  <p>Multiple emails are seperated by a comma.</p>
+                  <p>
+                    {" "}
+                    Enter email addresses, names, and optional URLs (format:
+                    email,firstname,url) separated by new lines.
+                  </p>{" "}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </Label>
           <Textarea
-            defaultValue={
-              !csvContent ? form.emails : (form.emails = csvContent)
-            }
+            defaultValue={form.recipients
+              .map(
+                (r) => `${r.email},${r.firstname}${r.url ? `,${r.url}` : ""}`
+              )
+              .join("\n")}
             onChange={(e) => {
+              const recipients = e.target.value
+                .split("\n")
+                .map((line) => {
+                  const [email, firstname, url] = line.split(",");
+                  return {
+                    email: email?.trim() || "",
+                    firstname: firstname?.trim() || "",
+                    url: url?.trim() || "",
+                  };
+                })
+                .filter(
+                  (r) =>
+                    isValidEmail(r.email) &&
+                    r.firstname &&
+                    isValidUrl(r.url) &&
+                    !form.recipients.some(
+                      (existing) => existing.email === r.email
+                    )
+                );
               setForm({
                 ...form,
-                emails: e.target.value,
+                recipients: [...form.recipients, ...recipients],
               });
             }}
             id="emails"
-            placeholder="Enter email addresses separated by commas"
+            placeholder="Enter email addresses, names, and optional URLs (format: email,firstname,url) separated by new lines"
             required
           />
         </div>
@@ -240,7 +312,11 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
                 <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
               </TooltipTrigger>
               <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
-                <p>Upload a CSV file containing the emails.</p>
+                <p>
+                  {" "}
+                  Upload a CSV file with emails, first names, and optional URLs
+                  (format: email,firstname,url).
+                </p>{" "}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

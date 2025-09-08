@@ -19,6 +19,7 @@ import parse from "html-react-parser";
 
 interface ISCEAppreciationMailProps {
   message: string;
+  link?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
@@ -63,8 +64,7 @@ const ISCEAppreciationMail = ({ message }: ISCEAppreciationMailProps) => {
               <Section className="pb-[40px] px-[25px] bg-black text-left ">
                 <Button
                   href="https://www.linkedin.com/company/isceapp/"
-                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full ">
                   <Img
                     width="18"
                     height="18"
@@ -74,8 +74,7 @@ const ISCEAppreciationMail = ({ message }: ISCEAppreciationMailProps) => {
                 </Button>
                 <Button
                   href="https://www.instagram.com/isce.tech?igsh=MXYzc3U2b3EyendzaA=="
-                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full ">
                   <Img
                     width="18"
                     height="18"
@@ -85,8 +84,7 @@ const ISCEAppreciationMail = ({ message }: ISCEAppreciationMailProps) => {
                 </Button>
                 <Button
                   href="https://x.com/isceapp?t=P4zRw8-h8c0-2H8eGMKJaA&s=09"
-                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full ">
                   <Img
                     width="18"
                     height="18"

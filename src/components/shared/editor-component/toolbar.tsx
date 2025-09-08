@@ -56,6 +56,11 @@ const ToolBar = ({ editor }: IProps) => {
     editor.chain().focus().insertContent("{{firstname}}").run();
   }, [editor]);
 
+  const insertUrlPlaceholder = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().insertContent("{{url}}").run();
+  }, [editor]);
+
   if (!editor) return null;
 
   return (
@@ -298,6 +303,24 @@ const ToolBar = ({ editor }: IProps) => {
           </TooltipTrigger>
           <TooltipContent className="bg-white border w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5]">
             <p>Insert {"{{firstname}}"} placeholder</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                insertUrlPlaceholder();
+              }}
+              className={defaultStyle}>
+              <Link className={iconStyle} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-white border w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5]">
+            <p>Insert {"{{url}}"} placeholder</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

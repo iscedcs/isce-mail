@@ -19,13 +19,14 @@ import parse from "html-react-parser";
 
 interface PtAppreciationMailProps {
   message: string;
+  link?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtAppreciationMail = ({ message }: PtAppreciationMailProps) => {
+const PtAppreciationMail = ({ message, link }: PtAppreciationMailProps) => {
   const santizedHTML = parse(message);
   const date = new Date().getFullYear();
   return (
@@ -52,6 +53,16 @@ const PtAppreciationMail = ({ message }: PtAppreciationMailProps) => {
                 />
               </Section>
               <Section>{santizedHTML}</Section>
+              {link && (
+                <Section className="text-center">
+                  <Button
+                    href={link}
+                    className="bg-green-600 text-white py-[10px] px-[20px] rounded-md">
+                    View Event Details
+                  </Button>
+                </Section>
+              )}
+
               <Hr className="mt-[30px]" />
               <Section className="text-center text-[#333333]">
                 <Text>
@@ -63,27 +74,45 @@ const PtAppreciationMail = ({ message }: PtAppreciationMailProps) => {
                   </p>
                 </Text>
               </Section>
-              <Section className="pb-[40px] text-center ">
+              <Section className="pb-[40px] text-center">
                 <Button
-                  href="https://www.facebook.com/profile.php?id=61560523394595"
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  href="https://www.facebook.com/profile.php?id=61561459226438&mibextid=ZbWKwL"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
                   <Img
                     width="23"
                     height="23"
-                    alt="facebook"
+                    alt="PalmTechnIQ"
                     src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/facebook-app-round-white-icon.png`}
                   />
                 </Button>
                 <Button
-                  href="https://www.instagram.com/palmtechniq?igsh=MXVxMjJjMmxnZ3hzag=="
-                  className="bg-green-600 m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  href="https://www.linkedin.com/company/palmtechniq/"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
+                  <Img
+                    width="23"
+                    height="23"
+                    alt="linkedin"
+                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/linkedin-app-icon.png`}
+                  />
+                </Button>
+                <Button
+                  href="https://www.instagram.com/palmtechniq/"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
                   <Img
                     width="23"
                     height="23"
                     alt="instagram"
-                    src={`https://static-00.iconduck.com/assets.00/instagram-icon-256x256-ubgz701g.png`}
+                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/ig-instagram-icon.png`}
+                  />
+                </Button>
+                <Button
+                  href="https://app.slack.com/client/T076LDT7109/C0764SE3VB7"
+                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
+                  <Img
+                    width="23"
+                    height="23"
+                    alt="slack"
+                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/slack-icon.png`}
                   />
                 </Button>
               </Section>

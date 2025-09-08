@@ -1,12 +1,13 @@
 "use server";
 
 import { IBasis, sendEmail } from "@/lib/mail-action/event/mail";
+import sanitizeHtml from "sanitize-html";
 
 export const sendMailAction = async (formData: {
   subject: string;
   basis: IBasis;
   message: string;
-  recipients: { email: string; firstname: string }[];
+  recipients: { email: string; firstname: string; url?: string }[];
   link: string;
 }) => {
   try {
@@ -18,11 +19,17 @@ export const sendMailAction = async (formData: {
     }
 
     await Promise.all(
-      recipients.map(({ email, firstname }) => {
+      recipients.map(({ email, firstname, url }) => {
         // Replace {{firstname}} with the recipient's first name
-        const personalizedMessage = message.replace(
-          /{{firstname}}/g,
-          firstname
+        let personalizedMessage = message.replace(/{{firstname}}/g, firstname);
+
+        // Replace {{url}} with the recipient's URL or empty string
+        personalizedMessage = personalizedMessage.replace(
+          /{{url}}/g,
+          sanitizeHtml(url || "", {
+            allowedTags: ["a"],
+            allowedAttributes: { a: ["href"] },
+          })
         );
 
         // Call sendEmail with the personalized message
