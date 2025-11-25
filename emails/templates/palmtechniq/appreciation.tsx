@@ -58,7 +58,7 @@ const PtAppreciationMail = ({ message, link }: PtAppreciationMailProps) => {
                   <Button
                     href={link}
                     className="bg-green-600 text-white py-[10px] px-[20px] rounded-md">
-                    View Event Details
+                    View Details
                   </Button>
                 </Section>
               )}
