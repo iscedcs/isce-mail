@@ -1,20 +1,13 @@
 "use client";
-import React, { ChangeEvent, Dispatch, ReactNode, SetStateAction } from "react";
-import {
-  useEditor,
-  EditorContent,
-  useCurrentEditor,
-  FloatingMenu,
-  BubbleMenu,
-} from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import ToolBar from "./toolbar";
-import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
-import TextStyle from "@tiptap/extension-text-style";
-import ListItem from "@tiptap/extension-list-item";
 import { Color } from "@tiptap/extension-color";
-import DOMPurify from "dompurify";
+import Link from "@tiptap/extension-link";
+import ListItem from "@tiptap/extension-list-item";
+import TextStyle from "@tiptap/extension-text-style";
+import Underline from "@tiptap/extension-underline";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { ChangeEvent, Dispatch, SetStateAction } from "react";
+import ToolBar from "./toolbar";
 
 interface IEditorProps {
   setContent: Dispatch<SetStateAction<string>>;
@@ -53,9 +46,7 @@ const Editor = ({ setContent, onChange }: IEditorProps) => {
     onUpdate: ({ editor }) => {
       setContent(editor.getHTML());
     },
-
   });
-  
 
   return (
     <div className=" flex gap-3 flex-col">
