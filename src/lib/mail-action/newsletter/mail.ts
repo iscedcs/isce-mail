@@ -1,45 +1,39 @@
-import { Resend } from "resend";
 import ISCENewsLetterMail from "../../../../emails/templates/isce/newsletter";
 import PtNewsLetterMail from "../../../../emails/templates/palmtechniq/newsletter";
+import {
+  IBasis,
+  BatchRecipient,
+  EmailPayload,
+  getResendInstance,
+  getSenderAddress,
+  interpolate,
+  sendBatch,
+} from "../shared";
 
+export type { IBasis };
 export const revalidate = 0;
 
-const palmtechniq_resend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
-const isce_resend = new Resend(process.env.ISCE_RESEND_API_KEY);
-const domain = process.env.VERCEL_URL;
-export type IBasis = "ISCE" | "PalmTechniq";
-
-export const sendEmail = async (
-  email: string,
+export const sendBulkEmail = async (
+  recipients: BatchRecipient[],
   subject: string,
   basis: IBasis,
-  message: string
-) => {
-  const resendInstance =
-    basis === "ISCE"
-      ? isce_resend
-      : basis === "PalmTechniq"
-      ? palmtechniq_resend
-      : isce_resend;
+  message: string,
+): Promise<number> => {
+  const resend = getResendInstance(basis);
+  const from = getSenderAddress(basis);
 
-  resendInstance.batch.send([
-    {
-      from:
-        basis === "ISCE"
-          ? "ISCE Team <support@palmtechniq.com>"
-          : basis === "PalmTechniq"
-          ? "PalmTechnIQ Team <support@palmtechniq.com>"
-          : "ISCE Team <support@striferral.com>", // support@isce.tech
-      to: email,
+  const payloads: EmailPayload[] = recipients.map((recipient) => {
+    const personalizedMessage = interpolate(message, recipient);
+    return {
+      from,
+      to: recipient.email,
       subject,
       react:
-        basis === "ISCE"
-          ? ISCENewsLetterMail({ message: message })
-          : basis === "PalmTechniq"
-          ? PtNewsLetterMail({
-              message: message,
-            })
-          : ISCENewsLetterMail({ message: message }),
-    },
-  ]);
+        basis === "PalmTechniq"
+          ? PtNewsLetterMail({ message: personalizedMessage })
+          : ISCENewsLetterMail({ message: personalizedMessage }),
+    };
+  });
+
+  return sendBatch(resend, payloads);
 };

@@ -10,13 +10,16 @@ import {
   Select,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { sendMailAction } from "@/_action/appreciation/send-mail";
-import { AlertCircleIcon, LoaderCircle } from "lucide-react";
+import { useDraftAutosave } from "@/hooks/useDraftAutosave";
+import { AlertCircleIcon, LoaderCircle, Trash2 } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/appreciation/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import CSVUploader from "@/components/shared/csv-uploader";
+import ConfirmSendDialog from "@/components/shared/confirm-send-dialog";
+import PreviewButton from "@/components/shared/preview-button";
 import Editor from "@/components/shared/editor-component/editor";
 
 export interface IRecipient {
@@ -50,6 +53,15 @@ export default function AppreciationForm() {
     link: "",
   });
 
+  const { restoreDraft, discardDraft } = useDraftAutosave(
+    "appreciation-draft",
+    form,
+    setForm,
+  );
+  useEffect(() => {
+    restoreDraft();
+  }, []);
+
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -63,6 +75,13 @@ export default function AppreciationForm() {
     } catch {
       return false;
     }
+  };
+
+  const handleDiscard = () => {
+    discardDraft();
+    setForm({ subject: "", basis: "ISCE", message: "", image: "", recipients: [], link: "" });
+    setEditorContent("");
+    setCsvContent("");
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,8 +117,8 @@ export default function AppreciationForm() {
               recipient.firstname &&
               isValidUrl(recipient.url) &&
               !form.recipients.some(
-                (existing) => existing.email === recipient.email
-              )
+                (existing) => existing.email === recipient.email,
+              ),
           );
         setForm({
           ...form,
@@ -110,25 +129,49 @@ export default function AppreciationForm() {
     }
   };
 
-  const sendMail = async () => {
+  const parseSyncedRecipients = (emailsCsv: string): IRecipient[] => {
+    return emailsCsv
+      .split(",")
+      .map((emailRaw) => emailRaw.trim())
+      .filter((email) => isValidEmail(email))
+      .map((email) => {
+        const guessedName =
+          email.split("@")[0]?.replace(/[._-]+/g, " ") || "Member";
+        return {
+          email,
+          firstname: guessedName,
+          url: "",
+        };
+      });
+  };
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const recipientCount = form.recipients.length;
+
+  const handleSendClick = () => {
+    setError(undefined);
+    setSuccess(undefined);
+    if (recipientCount === 0) {
+      setError("Please add at least one recipient before sending.");
+      return;
+    }
+    setShowConfirm(true);
+  };
+
+  const confirmSend = () => {
     startTransition(() => {
       sendMailAction(form)
         .then((data) => {
-          if (data?.error) {
-            setError(data?.error);
-          }
-          if (data?.success) {
-            setSuccess(data?.success);
-          }
+          if (data?.error) setError(data?.error);
+          if (data?.success) setSuccess(data?.success);
         })
-        .catch(() => setError("Something went wrong!!!"));
+        .catch(() => setError("Something went wrong!"))
+        .finally(() => setShowConfirm(false));
     });
   };
 
   return (
-    <form
-      action={sendMail}
-      className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10">
+    <form className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Appreciation - Send emails</h1>
         <p className="text-gray-500 dark:text-gray-400">
@@ -269,7 +312,7 @@ export default function AppreciationForm() {
           <Textarea
             defaultValue={form.recipients
               .map(
-                (r) => `${r.email},${r.firstname}${r.url ? `,${r.url}` : ""}`
+                (r) => `${r.email},${r.firstname}${r.url ? `,${r.url}` : ""}`,
               )
               .join("\n")}
             onChange={(e) => {
@@ -289,8 +332,8 @@ export default function AppreciationForm() {
                     r.firstname &&
                     isValidUrl(r.url) &&
                     !form.recipients.some(
-                      (existing) => existing.email === r.email
-                    )
+                      (existing) => existing.email === r.email,
+                    ),
                 );
               setForm({
                 ...form,
@@ -321,17 +364,57 @@ export default function AppreciationForm() {
             </Tooltip>
           </TooltipProvider>
         </Label>
-        <CSVUploader handleUpload={handleFileUpload} />
+        <CSVUploader
+          handleUpload={handleFileUpload}
+          onSyncedCsv={(emailsCsv) => {
+            setCsvContent(emailsCsv);
+            setForm((prev) => ({
+              ...prev,
+              recipients: parseSyncedRecipients(emailsCsv),
+            }));
+          }}
+        />
       </div>
       {error && <div className="text-destructive ">{error}</div>}
       {success && <div className="text-emerald-600 ">{success}</div>}
-      <Button type="submit" size="lg" disabled={isPending}>
-        {isPending ? (
-          <LoaderCircle className="animate-spin h-4 w-4" />
-        ) : (
-          "Send Emails"
-        )}
-      </Button>
+      <div className="flex gap-3 items-center">
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleSendClick}
+          disabled={isPending}>
+          {isPending ? (
+            <LoaderCircle className="animate-spin h-4 w-4" />
+          ) : recipientCount > 0 ? (
+            `Send to ${recipientCount} recipient${recipientCount !== 1 ? "s" : ""}`
+          ) : (
+            "Send Emails"
+          )}
+        </Button>
+        <PreviewButton
+          type="appreciation"
+          basis={form.basis}
+          data={{ message: form.message, link: form.link, image: form.image }}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleDiscard}
+          className="text-muted-foreground hover:text-destructive gap-1.5">
+          <Trash2 className="w-3.5 h-3.5" />
+          Discard draft
+        </Button>
+      </div>
+      <ConfirmSendDialog
+        open={showConfirm}
+        onConfirm={confirmSend}
+        onCancel={() => setShowConfirm(false)}
+        recipientCount={recipientCount}
+        subject={form.subject}
+        basis={form.basis}
+        isPending={isPending}
+      />
     </form>
   );
 }

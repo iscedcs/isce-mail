@@ -63,6 +63,13 @@ const PtAnnouncementMail = ({ message, link }: PtAnnouncementMailProps) => {
                     Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
                     Building, 22Rd ,Festac Town, Lagos, Nigeria.
                   </p>
+                  <p>
+                    <a
+                      href="mailto:unsubscribe@palmtechniq.com?subject=Unsubscribe"
+                      style={{ color: "#888" }}>
+                      Unsubscribe
+                    </a>
+                  </p>
                 </Text>
               </Section>
               <Section className="pb-[40px] text-center">

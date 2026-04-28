@@ -47,4 +47,22 @@ export const TEMPLATECARD = [
     link: "/holiday",
     desc: "Create emails to promote holiday sales and events, send seasonal greetings.",
   },
+  {
+    label: "Curriculum Email",
+    image: "/static/card-images/newsletter.png",
+    link: "/curriculum",
+    desc: "Share a course curriculum and week-by-week breakdown with prospective or enrolled students.",
+  },
+  {
+    label: "Course Promotion Email",
+    image: "/static/card-images/promotion.png",
+    link: "/course-promo",
+    desc: "Promote a course with limited-time pricing, discount badge, and deadline to drive enrollments.",
+  },
+  {
+    label: "Cohort Welcome Email",
+    image: "/static/card-images/welcome.png",
+    link: "/cohort-welcome",
+    desc: "Welcome a new cohort with start date, mentor, and community links to set students up for success.",
+  },
 ];

@@ -20,6 +20,7 @@ import parse from "html-react-parser";
 interface ISCEAppreciationMailProps {
   message: string;
   link?: string;
+  image?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
@@ -59,6 +60,13 @@ const ISCEAppreciationMail = ({ message }: ISCEAppreciationMailProps) => {
               <Section className="text-left pt-[20px] px-[40px] bg-black text-[#ffffff]">
                 <Text>
                   <p>Copyright © {date}: ISCE, All Rights Reserved.</p>
+                  <p>
+                    <a
+                      href="mailto:unsubscribe@isce.tech?subject=Unsubscribe"
+                      style={{ color: "#aaa" }}>
+                      Unsubscribe
+                    </a>
+                  </p>
                 </Text>
               </Section>
               <Section className="pb-[40px] px-[25px] bg-black text-left ">

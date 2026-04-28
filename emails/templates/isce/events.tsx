@@ -20,6 +20,7 @@ import parse from "html-react-parser";
 interface ISCEEventMailProps {
   message: string;
   link: string;
+  image?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
@@ -59,8 +60,7 @@ const ISCEEventMail = ({ message, link }: ISCEEventMailProps) => {
                 <Button
                   href={link}
                   className=" cursor-pointer text-white text-[13px] bg-black "
-                  style={{ padding: "10px 20px", margin: "0 auto" }}
-                >
+                  style={{ padding: "10px 20px", margin: "0 auto" }}>
                   Get Involved!!
                 </Button>
               </Section>
@@ -68,13 +68,19 @@ const ISCEEventMail = ({ message, link }: ISCEEventMailProps) => {
               <Section className="text-left pt-[20px] px-[40px] bg-black text-[#ffffff]">
                 <Text>
                   <p>Copyright © {date}: ISCE, All Rights Reserved.</p>
+                  <p>
+                    <a
+                      href="mailto:unsubscribe@isce.tech?subject=Unsubscribe"
+                      style={{ color: "#aaa" }}>
+                      Unsubscribe
+                    </a>
+                  </p>
                 </Text>
               </Section>
               <Section className="pb-[40px] px-[25px] bg-black text-left ">
                 <Button
                   href="https://www.linkedin.com/company/isceapp/"
-                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full ">
                   <Img
                     width="18"
                     height="18"
@@ -84,8 +90,7 @@ const ISCEEventMail = ({ message, link }: ISCEEventMailProps) => {
                 </Button>
                 <Button
                   href="https://www.instagram.com/isce.tech?igsh=MXYzc3U2b3EyendzaA=="
-                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full ">
                   <Img
                     width="18"
                     height="18"
@@ -95,8 +100,7 @@ const ISCEEventMail = ({ message, link }: ISCEEventMailProps) => {
                 </Button>
                 <Button
                   href="https://x.com/isceapp?t=P4zRw8-h8c0-2H8eGMKJaA&s=09"
-                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full "
-                >
+                  className="bg-white m-[5px] py-[8px] px-[10px] rounded-full ">
                   <Img
                     width="18"
                     height="18"

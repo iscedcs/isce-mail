@@ -1,53 +1,40 @@
-import { Resend } from "resend";
 import PtSurveyMail from "../../../../emails/templates/palmtechniq/survey";
 import ISCESurveyMail from "../../../../emails/templates/isce/survey";
+import {
+  IBasis,
+  BatchRecipient,
+  EmailPayload,
+  getResendInstance,
+  getSenderAddress,
+  interpolate,
+  sendBatch,
+} from "../shared";
 
+export type { IBasis };
 export const revalidate = 0;
 
-const palmtechniq_resend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
-const isce_resend = new Resend(process.env.ISCE_RESEND_API_KEY);
-const domain = process.env.VERCEL_URL;
-export type IBasis = "ISCE" | "PalmTechniq";
-
-export const sendEmail = async (
-  email: string,
+export const sendBulkEmail = async (
+  recipients: BatchRecipient[],
   subject: string,
   basis: IBasis,
   message: string,
-  link: string
-) => {
-  const resendInstance =
-    basis === "ISCE"
-      ? isce_resend
-      : basis === "PalmTechniq"
-      ? palmtechniq_resend
-      : isce_resend;
+  link: string,
+): Promise<number> => {
+  const resend = getResendInstance(basis);
+  const from = getSenderAddress(basis);
 
-  resendInstance.batch.send([
-    {
-      from:
-        basis === "ISCE"
-          ? "ISCE Team <support@palmtechniq.com>"
-          : basis === "PalmTechniq"
-          ? "PalmTechnIQ Team <support@palmtechniq.com>"
-          : "ISCE Team <support@striferral.com>", // support@isce.tech
-      to: email,
+  const payloads: EmailPayload[] = recipients.map((recipient) => {
+    const personalizedMessage = interpolate(message, recipient);
+    return {
+      from,
+      to: recipient.email,
       subject,
       react:
-        basis === "ISCE"
-          ? ISCESurveyMail({
-              message: message,
-              link: link,
-            })
-          : basis === "PalmTechniq"
-          ? PtSurveyMail({
-              message: message,
-              link: link,
-            })
-          : ISCESurveyMail({
-              message: message,
-              link: link,
-            }),
-    },
-  ]);
+        basis === "PalmTechniq"
+          ? PtSurveyMail({ message: personalizedMessage, link })
+          : ISCESurveyMail({ message: personalizedMessage, link }),
+    };
+  });
+
+  return sendBatch(resend, payloads);
 };

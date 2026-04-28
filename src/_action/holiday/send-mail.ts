@@ -1,6 +1,12 @@
-'use server';
+"use server";
 
-import { IBasis, sendEmail } from "@/lib/mail-action/holiday/mail";
+import { IBasis, sendBulkEmail } from "@/lib/mail-action/holiday/mail";
+import { logSend } from "@/lib/send-history";
+import {
+  BatchRecipient,
+  parseEmailString,
+  recipientLabel,
+} from "@/lib/mail-action/shared";
 
 export const sendMailAction = async (formData: {
   subject: string;
@@ -8,37 +14,33 @@ export const sendMailAction = async (formData: {
   message: string;
   image: string;
   emails: string;
+  recipients?: BatchRecipient[];
 }) => {
   try {
-    const emailArray = formData.emails.split(",");
-    console.log({ formData });
-    await Promise.all(
-      emailArray.map((a: string) => {
-        sendEmail(
-          a.trim(),
-          formData.subject,
-          formData.basis as IBasis,
-          formData.message,
-          formData.image
-        );
-        console.log({ a });
-      })
+    const recipients: BatchRecipient[] = formData.recipients?.length
+      ? formData.recipients
+      : parseEmailString(formData.emails);
+
+    if (!recipients.length) return { error: "No recipients provided." };
+    if (!formData.subject) return { error: "Subject is required." };
+    if (!formData.message) return { error: "Message is required." };
+
+    const sent = await sendBulkEmail(
+      recipients,
+      formData.subject,
+      formData.basis,
+      formData.message,
+      formData.image,
     );
-    console.log(
-      `Email sent to ${
-        emailArray.length == 1
-          ? `${emailArray.length} email address`
-          : `${emailArray.length} email addresses`
-      }`
-    );
-    return {
-      success: `Email sent to ${
-        emailArray.length == 1
-          ? `${emailArray.length} email address`
-          : `${emailArray.length} email addresses`
-      }`,
-    };
-  } catch (error) {
-    return { error: `Something went wrong` };
+
+    logSend({
+      type: "holiday",
+      basis: formData.basis,
+      subject: formData.subject,
+      recipientCount: sent,
+    });
+    return { success: `Email sent to ${recipientLabel(sent)}.` };
+  } catch {
+    return { error: "Something went wrong. Please try again." };
   }
 };

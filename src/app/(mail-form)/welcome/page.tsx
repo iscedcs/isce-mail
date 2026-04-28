@@ -10,13 +10,16 @@ import {
   Select,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { sendMailAction } from "@/_action/welcome/send-mail";
-import { AlertCircleIcon, LoaderCircle } from "lucide-react";
+import { useDraftAutosave } from "@/hooks/useDraftAutosave";
+import { AlertCircleIcon, LoaderCircle, Trash2 } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/welcome/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
-import CSVUploader from "@/components/shared/csv-uploader";
+import CSVUploader, { RecipientItem } from "@/components/shared/csv-uploader";
+import ConfirmSendDialog from "@/components/shared/confirm-send-dialog";
+import PreviewButton from "@/components/shared/preview-button";
 import Editor from "@/components/shared/editor-component/editor";
 
 export interface IWelcomeForm {
@@ -43,41 +46,66 @@ export default function WelcomeForm() {
     link: "",
   });
 
-  const sendMail = async () => {
+  const [recipients, setRecipients] = useState<RecipientItem[]>([]);
+  const { restoreDraft, discardDraft } = useDraftAutosave("welcome-draft", form, setForm);
+  useEffect(() => {
+    restoreDraft();
+  }, []);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const recipientCount =
+    recipients.length || form.emails.split(",").filter(Boolean).length;
+
+  const handleSendClick = () => {
+    setError(undefined);
+    setSuccess(undefined);
+    if (recipientCount === 0) {
+      setError("Please add at least one recipient before sending.");
+      return;
+    }
+    setShowConfirm(true);
+  };
+
+  const confirmSend = () => {
     startTransition(() => {
-      sendMailAction(form)
+      sendMailAction({
+        ...form,
+        recipients: recipients.length ? recipients : undefined,
+      })
         .then((data) => {
-          if (data?.error) {
-            setError(data?.error);
-          }
-          if (data?.success) {
-            setSuccess(data?.success);
-          }
+          if (data?.error) setError(data?.error);
+          if (data?.success) setSuccess(data?.success);
         })
-        .catch(() => setError("Something went wrong!!!"));
+        .catch(() => setError("Something went wrong!"))
+        .finally(() => setShowConfirm(false));
     });
   };
-const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const rows = text.split("\n").map((row) => row.split(","));
-      const trimmedRows = rows.map((row) =>
-        row.map((cell) => cell.trim()).join(",")
-      );
-      const trimmedText = trimmedRows.join(",");
-      setCsvContent(trimmedText);
-    };
-    reader.readAsText(file);
-  }
-};
+
+  const handleDiscard = () => {
+    discardDraft();
+    setForm({ subject: "", basis: "ISCE", message: "", image: "", emails: "", link: "" });
+    setEditorContent("");
+    setCsvContent("");
+    setRecipients([]);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const rows = text.split("\n").map((row) => row.split(","));
+        const trimmedRows = rows.map((row) =>
+          row.map((cell) => cell.trim()).join(","),
+        );
+        const trimmedText = trimmedRows.join(",");
+        setCsvContent(trimmedText);
+      };
+      reader.readAsText(file);
+    }
+  };
   return (
-    <form
-      action={sendMail}
-      className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10"
-    >
+    <form className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Welcome - Send emails</h1>
         <p className="text-gray-500 dark:text-gray-400">
@@ -123,8 +151,7 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
                 ...form,
                 basis: e,
               });
-            }}
-          >
+            }}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a basis" />
             </SelectTrigger>
@@ -238,18 +265,56 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
               </Tooltip>
             </TooltipProvider>
           </Label>
-          <CSVUploader handleUpload={handleFileUpload} />
+          <CSVUploader
+            handleUpload={handleFileUpload}
+            onSyncedCsv={(emailsCsv) => {
+              setCsvContent(emailsCsv);
+              setForm((prev) => ({ ...prev, emails: emailsCsv }));
+            }}
+            onSyncedRecipients={setRecipients}
+          />
         </div>
         {error && <div className="text-destructive ">{error}</div>}
         {success && <div className="text-emerald-600 ">{success}</div>}
       </div>
-      <Button type="submit" size="lg" disabled={isPending}>
-        {isPending ? (
-          <LoaderCircle className="animate-spin h-4 w-4" />
-        ) : (
-          "Send Emails"
-        )}
-      </Button>
+      <div className="flex gap-3 items-center">
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleSendClick}
+          disabled={isPending}>
+          {isPending ? (
+            <LoaderCircle className="animate-spin h-4 w-4" />
+          ) : recipientCount > 0 ? (
+            `Send to ${recipientCount} recipient${recipientCount !== 1 ? "s" : ""}`
+          ) : (
+            "Send Emails"
+          )}
+        </Button>
+        <PreviewButton
+          type="welcome"
+          basis={form.basis}
+          data={{ message: form.message, link: form.link }}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleDiscard}
+          className="text-muted-foreground hover:text-destructive gap-1.5">
+          <Trash2 className="w-3.5 h-3.5" />
+          Discard draft
+        </Button>
+      </div>
+      <ConfirmSendDialog
+        open={showConfirm}
+        onConfirm={confirmSend}
+        onCancel={() => setShowConfirm(false)}
+        recipientCount={recipientCount}
+        subject={form.subject}
+        basis={form.basis}
+        isPending={isPending}
+      />
     </form>
   );
 }

@@ -20,6 +20,7 @@ import parse from "html-react-parser";
 interface PtAppreciationMailProps {
   message: string;
   link?: string;
+  image?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
@@ -71,6 +72,13 @@ const PtAppreciationMail = ({ message, link }: PtAppreciationMailProps) => {
                   <p>
                     Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
                     Building, 22Rd ,Festac Town, Lagos, Nigeria.
+                  </p>
+                  <p>
+                    <a
+                      href="mailto:unsubscribe@palmtechniq.com?subject=Unsubscribe"
+                      style={{ color: "#888" }}>
+                      Unsubscribe
+                    </a>
                   </p>
                 </Text>
               </Section>

@@ -1,56 +1,57 @@
 "use server";
 
-import { IBasis, sendEmail } from "@/lib/mail-action/event/mail";
+import { IBasis, sendBulkEmail } from "@/lib/mail-action/event/mail";
+import { logSend } from "@/lib/send-history";
+import {
+  BatchRecipient,
+  parseEmailString,
+  interpolate,
+  recipientLabel,
+} from "@/lib/mail-action/shared";
 import sanitizeHtml from "sanitize-html";
 
 export const sendMailAction = async (formData: {
   subject: string;
   basis: IBasis;
   message: string;
-  recipients: { email: string; firstname: string; url?: string }[];
   link: string;
+  emails?: string;
+  recipients?: { email: string; firstname: string; url?: string }[];
 }) => {
   try {
-    const { subject, basis, message, recipients, link } = formData;
-    console.log({ formData });
+    // Support legacy recipients array (with firstname) from the existing form
+    let batchRecipients: BatchRecipient[];
 
-    if (!recipients.length || !subject || !message || !link) {
-      return { error: "Missing required fields or recipients" };
+    if (formData.recipients?.length) {
+      batchRecipients = formData.recipients.map(({ email, firstname, url }) => {
+        // url substitution still handled here for backward compat
+        return { email: email.trim(), name: firstname };
+      });
+    } else {
+      batchRecipients = parseEmailString(formData.emails!);
     }
 
-    await Promise.all(
-      recipients.map(({ email, firstname, url }) => {
-        // Replace {{firstname}} with the recipient's first name
-        let personalizedMessage = message.replace(/{{firstname}}/g, firstname);
+    if (!batchRecipients.length) return { error: "No recipients provided." };
+    if (!formData.subject) return { error: "Subject is required." };
+    if (!formData.message) return { error: "Message is required." };
 
-        // Replace {{url}} with the recipient's URL or empty string
-        personalizedMessage = personalizedMessage.replace(
-          /{{url}}/g,
-          sanitizeHtml(url || "", {
-            allowedTags: ["a"],
-            allowedAttributes: { a: ["href"] },
-          })
-        );
-
-        // Call sendEmail with the personalized message
-        return sendEmail(
-          email.trim(),
-          subject.trim(),
-          basis,
-          personalizedMessage,
-          link.trim()
-        );
-      })
+    const sent = await sendBulkEmail(
+      batchRecipients,
+      formData.subject,
+      formData.basis,
+      formData.message,
+      formData.link,
     );
-    const successMessage =
-      recipients.length === 1
-        ? `Email sent to ${recipients.length} recipient`
-        : `Emails sent to ${recipients.length} recipients`;
 
-    console.log(successMessage);
-    return { success: successMessage };
+    logSend({
+      type: "event",
+      basis: formData.basis,
+      subject: formData.subject,
+      recipientCount: sent,
+    });
+    return { success: `Email sent to ${recipientLabel(sent)}.` };
   } catch (error) {
-    console.error("Error sending emails:", error);
+    console.error("Error sending event emails:", error);
     return { error: "Failed to send emails. Please try again." };
   }
 };

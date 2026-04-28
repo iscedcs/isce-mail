@@ -19,14 +19,15 @@ import parse from "html-react-parser";
 
 interface PtHolidayMailProps {
   message: string;
-  image: string;
+  image?: string;
+  link?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
   ? `${process.env.VERCEL_URL}`
   : "/static";
 
-const PtHolidayMail = ({ message, image }: PtHolidayMailProps) => {
+const PtHolidayMail = ({ message, image, link }: PtHolidayMailProps) => {
   const santizedHTML = parse(message);
   const date = new Date().getFullYear();
 
@@ -63,6 +64,13 @@ const PtHolidayMail = ({ message, image }: PtHolidayMailProps) => {
                   <p>
                     Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
                     Building, 22Rd ,Festac Town, Lagos, Nigeria.
+                  </p>
+                  <p>
+                    <a
+                      href="mailto:unsubscribe@palmtechniq.com?subject=Unsubscribe"
+                      style={{ color: "#888" }}>
+                      Unsubscribe
+                    </a>
                   </p>
                 </Text>
               </Section>
