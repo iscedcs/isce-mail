@@ -37,6 +37,14 @@ const PtCoursePromoMail = ({
   const sanitizedHTML = parse(message);
   const date = new Date().getFullYear();
 
+  function parsePrice(price: string): number {
+    return parseFloat(price.replace(/[^0-9.]/g, "")) || 0;
+  }
+  const originalVal = parsePrice(originalPrice);
+  const discountVal = parsePrice(discountPrice);
+  const discountPercent =
+    originalVal > 0 ? Math.round((1 - discountVal / originalVal) * 100) : 0;
+
   return (
     <Tailwind>
       <Html>
@@ -56,6 +64,20 @@ const PtCoursePromoMail = ({
                 />
               </Section>
 
+              {/* Banner Image */}
+              {bannerImage && (
+                <Section className="w-full">
+                  <Link href={link} style={{ display: "block" }}>
+                    <Img
+                      src={bannerImage}
+                      width="600"
+                      style={{ display: "block", width: "100%" }}
+                      alt="Course banner"
+                    />
+                  </Link>
+                </Section>
+              )}
+
               {/* Course Title Banner */}
               <Section
                 style={{
@@ -74,20 +96,6 @@ const PtCoursePromoMail = ({
                   {courseTitle}
                 </Text>
               </Section>
-
-              {/* Banner Image */}
-              {bannerImage && (
-                <Section className="w-full">
-                  <Link href={link} style={{ display: "block" }}>
-                    <Img
-                      src={bannerImage}
-                      width="600"
-                      style={{ display: "block", width: "100%" }}
-                      alt="Course banner"
-                    />
-                  </Link>
-                </Section>
-              )}
 
               {/* Message Body */}
               <Section className="px-8 py-6 text-[#333]">
@@ -109,14 +117,9 @@ const PtCoursePromoMail = ({
                   ✦ Special Offer ✦
                 </Text>
                 <Text
-                  className="text-[44px] font-bold m-0 mt-3"
-                  style={{ color: "#ffffff", lineHeight: "1.1" }}>
-                  {discountPrice}
-                </Text>
-                <Text
-                  className="text-[16px] mt-2 mb-0"
-                  style={{ color: "#6b7280", textDecoration: "line-through" }}>
-                  {originalPrice}
+                  className="text-[64px] font-bold m-0 mt-2"
+                  style={{ color: "#ffffff", lineHeight: "1" }}>
+                  {discountPercent}% OFF
                 </Text>
                 {deadline && (
                   <Text
