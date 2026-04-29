@@ -47,7 +47,11 @@ export default function HolidayForm() {
   });
 
   const [recipients, setRecipients] = useState<RecipientItem[]>([]);
-  const { restoreDraft, discardDraft } = useDraftAutosave("holiday-draft", form, setForm);
+  const { restoreDraft, discardDraft } = useDraftAutosave(
+    "holiday-draft",
+    form,
+    setForm,
+  );
   useEffect(() => {
     restoreDraft();
   }, []);
@@ -82,7 +86,14 @@ export default function HolidayForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", image: "", emails: "", link: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      image: "",
+      emails: "",
+      link: "",
+    });
     setEditorContent("");
     setCsvContent("");
     setRecipients([]);

@@ -47,7 +47,11 @@ export default function PromotionForm() {
     link: "",
   });
 
-  const { restoreDraft, discardDraft } = useDraftAutosave("promotion-draft", form, setForm);
+  const { restoreDraft, discardDraft } = useDraftAutosave(
+    "promotion-draft",
+    form,
+    setForm,
+  );
   useEffect(() => {
     restoreDraft();
   }, []);
@@ -83,7 +87,14 @@ export default function PromotionForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", image: "", emails: "", link: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      image: "",
+      emails: "",
+      link: "",
+    });
     setEditorContent("");
     setCsvContent("");
     setRecipients([]);

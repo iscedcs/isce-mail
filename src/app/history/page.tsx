@@ -43,8 +43,12 @@ export default function SendHistoryPage() {
     setLoading(true);
     Promise.all([
       fetch("/api/send-history").then((r) => r.json()),
-      fetch("/api/jobs").then((r) => r.json()).catch(() => []),
-      fetch("/api/email-events").then((r) => r.json()).catch(() => []),
+      fetch("/api/jobs")
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("/api/email-events")
+        .then((r) => r.json())
+        .catch(() => []),
     ])
       .then(([h, j, e]) => {
         setHistory(h);
@@ -54,17 +58,10 @@ export default function SendHistoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Auto-refresh every 4s when a job is running
+  // Refresh once on mount; manual refresh via the Refresh button
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(() => {
-      const hasRunning = jobs.some(
-        (j) => j.status === "pending" || j.status === "running",
-      );
-      if (hasRunning) fetchAll();
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [fetchAll, jobs]);
+  }, [fetchAll]);
 
   const activeTab = (t: typeof tab) =>
     t === tab
