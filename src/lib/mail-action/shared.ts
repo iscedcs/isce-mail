@@ -108,3 +108,45 @@ export function parseEmailString(emails: string): BatchRecipient[] {
 export function recipientLabel(count: number): string {
   return count === 1 ? "1 recipient" : `${count} recipients`;
 }
+
+// ---------------------------------------------------------------------------
+// Tracked batch — returns per-email sent/failed counts
+// ---------------------------------------------------------------------------
+
+export interface BatchResult {
+  sent: number;
+  failed: number;
+}
+
+/**
+ * Same as sendBatch but tracks per-email success/failure.
+ * Used by fire-and-forget API routes so job status is accurate.
+ */
+export async function sendBatchTracked(
+  resend: Resend,
+  payloads: EmailPayload[],
+): Promise<BatchResult> {
+  if (payloads.length === 0) return { sent: 0, failed: 0 };
+
+  let sent = 0;
+  let failed = 0;
+
+  for (let i = 0; i < payloads.length; i += RESEND_BATCH_LIMIT) {
+    const chunk = payloads.slice(i, i + RESEND_BATCH_LIMIT);
+    try {
+      const result = await resend.batch.send(chunk);
+      if (result.error) {
+        failed += chunk.length;
+      } else {
+        for (const item of result.data ?? []) {
+          if (item?.id) sent++;
+          else failed++;
+        }
+      }
+    } catch {
+      failed += chunk.length;
+    }
+  }
+
+  return { sent, failed };
+}

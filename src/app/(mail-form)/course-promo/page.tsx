@@ -10,8 +10,8 @@ import {
   Select,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState, useTransition, useEffect } from "react";
-import { sendMailAction } from "@/_action/course-promo/send-mail";
+import { useState, useTransition, useEffect, useRef } from "react";
+import type { Job } from "@/lib/jobs";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 import { AlertCircleIcon, LoaderCircle, Trash2 } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/course-promo/mail";
@@ -42,6 +42,8 @@ export default function CoursePromoForm() {
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
+  const [job, setJob] = useState<Job | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [recipients, setRecipients] = useState<RecipientItem[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [form, setForm] = useState<ICoursePromoForm>({
@@ -79,19 +81,79 @@ export default function CoursePromoForm() {
     setShowConfirm(true);
   };
 
-  const confirmSend = () => {
-    startTransition(() => {
-      sendMailAction({
-        ...form,
-        recipients: recipients.length ? recipients : undefined,
-      })
-        .then((data) => {
-          if (data?.error) setError(data?.error);
-          if (data?.success) setSuccess(data?.success);
-        })
-        .catch(() => setError("Something went wrong!"))
-        .finally(() => setShowConfirm(false));
-    });
+  const startPolling = (jobId: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/jobs/${jobId}`);
+        if (!res.ok) return;
+        const updated: Job = await res.json();
+        setJob(updated);
+        if (updated.status === "done" || updated.status === "failed") {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+          startTransition(() => {}); // clear pending
+          if (updated.status === "done") {
+            const msg =
+              updated.failed > 0
+                ? `Sent to ${updated.sent} recipients (${updated.failed} failed).`
+                : `Email sent to ${updated.sent} recipient${updated.sent !== 1 ? "s" : ""}.`;
+            setSuccess(msg);
+          } else {
+            setError(updated.error ?? "Send failed.");
+          }
+        }
+      } catch {
+        // swallow poll errors
+      }
+    }, 2000);
+  };
+
+  const confirmSend = async () => {
+    setShowConfirm(false);
+    setError(undefined);
+    setSuccess(undefined);
+    setJob(null);
+
+    const payload = {
+      ...form,
+      recipients: recipients.length ? recipients : undefined,
+    };
+
+    // Step 1: Create the job (instant)
+    let jobId: string;
+    try {
+      const createRes = await fetch("/api/send/course-promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const createData = await createRes.json();
+      if (!createRes.ok) {
+        setError(createData.error ?? "Failed to start send.");
+        return;
+      }
+      jobId = createData.jobId;
+    } catch {
+      setError("Failed to reach server. Try again.");
+      return;
+    }
+
+    // Step 2: Fetch initial job state and show pending UI
+    const jobRes = await fetch(`/api/jobs/${jobId}`);
+    const jobData: Job = await jobRes.json();
+    setJob(jobData);
+    startTransition(() => {}); // keep isPending true-ish via job.status check
+
+    // Step 3: Fire-and-forget the actual send — browser doesn't await this
+    fetch(`/api/jobs/${jobId}/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {}); // intentional fire-and-forget
+
+    // Step 4: Poll for completion
+    startPolling(jobId);
   };
 
   const handleDiscard = () => {
@@ -286,15 +348,21 @@ export default function CoursePromoForm() {
         </div>
         {error && <div className="text-destructive">{error}</div>}
         {success && <div className="text-emerald-600">{success}</div>}
+        {job && job.status === "running" && (
+          <div className="text-sm text-blue-600 flex items-center gap-2">
+            <LoaderCircle className="animate-spin h-3.5 w-3.5" />
+            Sending in background… ({job.sent + job.failed}/{job.total} processed)
+          </div>
+        )}
       </div>
       <div className="flex gap-3 items-center">
         <Button
           type="button"
           size="lg"
           onClick={handleSendClick}
-          disabled={isPending}>
-          {isPending ? (
-            <LoaderCircle className="animate-spin h-4 w-4" />
+          disabled={job?.status === "pending" || job?.status === "running"}>
+          {job?.status === "pending" || job?.status === "running" ? (
+            <><LoaderCircle className="animate-spin h-4 w-4 mr-2" />Sending…</>
           ) : recipientCount > 0 ? (
             `Send to ${recipientCount} recipient${recipientCount !== 1 ? "s" : ""}`
           ) : (
