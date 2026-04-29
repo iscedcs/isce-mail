@@ -51,7 +51,11 @@ export default function EventsForm() {
     link: "",
   });
 
-  const { restoreDraft, discardDraft } = useDraftAutosave("event-draft", form, setForm);
+  const { restoreDraft, discardDraft } = useDraftAutosave(
+    "event-draft",
+    form,
+    setForm,
+  );
   useEffect(() => {
     restoreDraft();
   }, []);
@@ -73,7 +77,14 @@ export default function EventsForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", image: "", recipients: [], link: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      image: "",
+      recipients: [],
+      link: "",
+    });
     setEditorContent("");
     setCsvContent("");
   };

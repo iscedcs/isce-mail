@@ -86,7 +86,14 @@ export default function AnnouncementForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", image: "", link: "", emails: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      image: "",
+      link: "",
+      emails: "",
+    });
     setEditorContent("");
     setCsvContent("");
     setRecipients([]);

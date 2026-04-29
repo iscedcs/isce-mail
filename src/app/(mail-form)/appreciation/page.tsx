@@ -79,7 +79,14 @@ export default function AppreciationForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", image: "", recipients: [], link: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      image: "",
+      recipients: [],
+      link: "",
+    });
     setEditorContent("");
     setCsvContent("");
   };
