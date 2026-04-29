@@ -138,7 +138,7 @@ export async function sendBatchTracked(
       if (result.error) {
         failed += chunk.length;
       } else {
-        for (const item of result.data ?? []) {
+        for (const item of result.data?.data ?? []) {
           if (item?.id) sent++;
           else failed++;
         }
