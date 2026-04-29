@@ -6,10 +6,7 @@ import {
   Html,
   Img,
   Hr,
-  Link,
   Section,
-  Column,
-  Row,
   Text,
   Tailwind,
   Preview,
@@ -22,112 +19,189 @@ interface PtPromotionMailProps {
   image: string;
 }
 
-const baseUrl = process.env.VERCEL_URL
-  ? `${process.env.VERCEL_URL}`
-  : "/static";
-
 const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
-  const santizedHTML = parse(message);
-  const date = new Date().getFullYear();
+  const sanitizedHTML = parse(message);
+  const year = new Date().getFullYear();
 
   return (
     <Tailwind>
       <Html>
-        <Head>
-          <Preview>PalmTechnIQ Promotional Mail</Preview>
-          <Body className="w-full">
-            <Container className="w-full">
-              <Section className="bg-[#021A1A]">
-                <Img
-                  className="mx-auto py-3 h-full object-cover"
-                  src={`https://www.palmtechniq.com/assets/palmtechniqlogo.png`}
-                  width="200"
-                  height="200"
-                />
-              </Section>
-              <Section className="w-full px-[20px] ">
-                <Img
-                  width="200"
-                  className="mx-auto rounded-md object-cover w-full pt-6"
-                  height="500"
-                  src={`${image}`}
-                />
-              </Section>
-              <Section>{santizedHTML}</Section>
-              <Section>
-                <Button
-                  href={link}
-                  className=" cursor-pointer rounded-full text-white text-[13px] bg-green-600 "
-                  style={{ padding: "10px 20px", margin: "0 auto" }}>
-                  Be the first to try it out
-                </Button>
-              </Section>
-              <Hr className="mt-[30px]" />
-              <Section className="text-center text-[#333333]">
-                <Text>
-                  <p>Copyright © {date} PalmTechnIQ, All Rights Reserved.</p>
+        <Head />
+        <Preview>PalmTechnIQ — New Update Just For You</Preview>
+        <Body style={{ backgroundColor: "#f0f2f0", margin: 0, padding: 0 }}>
+          <Container
+            style={{
+              maxWidth: "600px",
+              margin: "0 auto",
+              backgroundColor: "#ffffff",
+              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+            }}>
 
-                  <p>
-                    Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
-                    Building, 22Rd ,Festac Town, Lagos, Nigeria.
-                  </p>
-                  <p>
-                    <a
-                      href="mailto:unsubscribe@palmtechniq.com?subject=Unsubscribe"
-                      style={{ color: "#888" }}>
-                      Unsubscribe
-                    </a>
-                  </p>
-                </Text>
+            {/* ── Header ── */}
+            <Section
+              style={{
+                backgroundColor: "#021A1A",
+                padding: "16px 32px",
+                borderBottom: "3px solid #16a34a",
+              }}>
+              <Img
+                src="https://www.palmtechniq.com/assets/palmtechniqlogo.png"
+                width="160"
+                alt="PalmTechnIQ"
+                style={{ display: "block", margin: "0 auto" }}
+              />
+            </Section>
+
+            {/* ── Hero image (full-width, no clipping) ── */}
+            {image && (
+              <Section style={{ lineHeight: 0, fontSize: 0 }}>
+                <Img
+                  src={image}
+                  alt="Promotion banner"
+                  width="600"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxWidth: "600px",
+                    height: "auto",
+                  }}
+                />
               </Section>
-              <Section className="pb-[40px] text-center">
-                <Button
-                  href="https://www.facebook.com/profile.php?id=61561459226438&mibextid=ZbWKwL"
-                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
-                  <Img
-                    width="23"
-                    height="23"
-                    alt="PalmTechnIQ"
-                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/facebook-app-round-white-icon.png`}
-                  />
-                </Button>
-                <Button
-                  href="https://www.linkedin.com/company/palmtechniq/"
-                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
-                  <Img
-                    width="23"
-                    height="23"
-                    alt="linkedin"
-                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/linkedin-app-icon.png`}
-                  />
-                </Button>
-                <Button
-                  href="https://www.instagram.com/palmtechniq/"
-                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
-                  <Img
-                    width="23"
-                    height="23"
-                    alt="instagram"
-                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/ig-instagram-icon.png`}
-                  />
-                </Button>
-                <Button
-                  href="https://app.slack.com/client/T076LDT7109/C0764SE3VB7"
-                  className="m-[5px] rounded-full bg-green-600 px-[10px] py-[8px]">
-                  <Img
-                    width="23"
-                    height="23"
-                    alt="slack"
-                    src={`https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/slack-icon.png`}
-                  />
-                </Button>
-              </Section>
-            </Container>
-          </Body>
-        </Head>
+            )}
+
+            {/* ── Message body ── */}
+            <Section
+              style={{
+                padding: "32px 36px 28px",
+                color: "#1a1a1a",
+                fontSize: "15px",
+                lineHeight: "1.7",
+              }}>
+              {sanitizedHTML}
+            </Section>
+
+            {/* ── CTA ── */}
+            <Section style={{ textAlign: "center", padding: "4px 36px 40px" }}>
+              <Button
+                href={link}
+                style={{
+                  backgroundColor: "#16a34a",
+                  color: "#ffffff",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                  textDecoration: "none",
+                  padding: "14px 36px",
+                  borderRadius: "8px",
+                  display: "inline-block",
+                }}>
+                Be the first to try it out
+              </Button>
+            </Section>
+
+            <Hr style={{ borderColor: "#e5e7eb", margin: "0" }} />
+
+            {/* ── Footer ── */}
+            <Section
+              style={{
+                padding: "20px 32px 12px",
+                textAlign: "center",
+                color: "#9ca3af",
+              }}>
+              <Text style={{ fontSize: "12px", margin: "0" }}>
+                Copyright © {year} PalmTechnIQ, All Rights Reserved.
+              </Text>
+              <Text style={{ fontSize: "11px", margin: "6px 0 0" }}>
+                Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
+                Building, 22Rd, Festac Town, Lagos, Nigeria.
+              </Text>
+              <Text style={{ fontSize: "11px", margin: "8px 0 0" }}>
+                <a
+                  href="mailto:unsubscribe@palmtechniq.com?subject=Unsubscribe"
+                  style={{ color: "#9ca3af", textDecoration: "underline" }}>
+                  Unsubscribe
+                </a>
+              </Text>
+            </Section>
+
+            {/* ── Social icons ── */}
+            <Section
+              style={{
+                backgroundColor: "#021A1A",
+                padding: "16px 32px 20px",
+                textAlign: "center",
+              }}>
+              <Button
+                href="https://www.facebook.com/profile.php?id=61561459226438&mibextid=ZbWKwL"
+                style={{
+                  display: "inline-block",
+                  backgroundColor: "#16a34a",
+                  borderRadius: "50%",
+                  padding: "8px",
+                  margin: "0 5px",
+                }}>
+                <Img
+                  width="20"
+                  height="20"
+                  alt="Facebook"
+                  src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/facebook-app-round-white-icon.png"
+                />
+              </Button>
+              <Button
+                href="https://www.linkedin.com/company/palmtechniq/"
+                style={{
+                  display: "inline-block",
+                  backgroundColor: "#16a34a",
+                  borderRadius: "50%",
+                  padding: "8px",
+                  margin: "0 5px",
+                }}>
+                <Img
+                  width="20"
+                  height="20"
+                  alt="LinkedIn"
+                  src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/linkedin-app-icon.png"
+                />
+              </Button>
+              <Button
+                href="https://www.instagram.com/palmtechniq/"
+                style={{
+                  display: "inline-block",
+                  backgroundColor: "#16a34a",
+                  borderRadius: "50%",
+                  padding: "8px",
+                  margin: "0 5px",
+                }}>
+                <Img
+                  width="20"
+                  height="20"
+                  alt="Instagram"
+                  src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/ig-instagram-icon.png"
+                />
+              </Button>
+              <Button
+                href="https://app.slack.com/client/T076LDT7109/C0764SE3VB7"
+                style={{
+                  display: "inline-block",
+                  backgroundColor: "#16a34a",
+                  borderRadius: "50%",
+                  padding: "8px",
+                  margin: "0 5px",
+                }}>
+                <Img
+                  width="20"
+                  height="20"
+                  alt="Slack"
+                  src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/slack-icon.png"
+                />
+              </Button>
+            </Section>
+
+          </Container>
+        </Body>
       </Html>
     </Tailwind>
   );
 };
 
 export default PtPromotionMail;
+
