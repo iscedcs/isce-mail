@@ -8,6 +8,8 @@ import {
   getSenderAddress,
   interpolate,
   sendBatch,
+  sendBatchTracked,
+  BatchResult,
 } from "../shared";
 
 export type { IBasis };
@@ -58,4 +60,52 @@ export const sendBulkEmail = async (
   });
 
   return sendBatch(resend, payloads);
+};
+
+/** Tracked variant — used by the fire-and-forget API route. */
+export const sendBulkEmailTracked = async (
+  recipients: BatchRecipient[],
+  subject: string,
+  basis: IBasis,
+  message: string,
+  courseTitle: string,
+  originalPrice: string,
+  discountPrice: string,
+  deadline: string,
+  link: string,
+  bannerImage?: string,
+): Promise<BatchResult> => {
+  const resend = getResendInstance(basis);
+  const from = getSenderAddress(basis);
+
+  const payloads: EmailPayload[] = recipients.map((recipient) => {
+    const personalizedMessage = interpolate(message, recipient);
+    return {
+      from,
+      to: recipient.email,
+      subject,
+      react:
+        basis === "PalmTechniq"
+          ? PtCoursePromoMail({
+              message: personalizedMessage,
+              courseTitle,
+              originalPrice,
+              discountPrice,
+              deadline,
+              link,
+              bannerImage,
+            })
+          : ISCECoursePromoMail({
+              message: personalizedMessage,
+              courseTitle,
+              originalPrice,
+              discountPrice,
+              deadline,
+              link,
+              bannerImage,
+            }),
+    };
+  });
+
+  return sendBatchTracked(resend, payloads);
 };
