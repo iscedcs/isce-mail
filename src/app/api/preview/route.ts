@@ -69,8 +69,8 @@ function resolveTemplate(type: string, basis: string, data: any) {
         : IsceSurveyMail({ message: d.message, link: d.link });
     case "holiday":
       return isPT
-        ? PtHolidayMail({ message: d.message, link: d.link })
-        : IsceHolidayMail({ message: d.message, link: d.link });
+        ? PtHolidayMail({ message: d.message, link: d.link, image: d.image })
+        : IsceHolidayMail({ message: d.message, link: d.link, image: d.image });
     case "event":
       return isPT
         ? PtEventsMail({ message: d.message, link: d.link, image: d.image })

@@ -10,8 +10,7 @@ import {
   Select,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState, useTransition, useEffect } from "react";
-import { sendMailAction } from "@/_action/holiday/send-mail";
+import { useState, useEffect } from "react";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 import { AlertCircleIcon, LoaderCircle, Trash2 } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/holiday/mail";
@@ -21,6 +20,7 @@ import CSVUploader, { RecipientItem } from "@/components/shared/csv-uploader";
 import ConfirmSendDialog from "@/components/shared/confirm-send-dialog";
 import PreviewButton from "@/components/shared/preview-button";
 import Editor from "@/components/shared/editor-component/editor";
+import ImageUploader from "@/components/shared/image-uploader";
 
 export interface IHolidayForm {
   subject: string;
@@ -36,7 +36,7 @@ export default function HolidayForm() {
   const [editorContent, setEditorContent] = useState<string>("");
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
-  const [isPending, startTransition] = useTransition();
+  const [isSending, setIsSending] = useState(false);
   const [form, setForm] = useState<IHolidayForm>({
     subject: "",
     basis: "ISCE",
@@ -69,19 +69,38 @@ export default function HolidayForm() {
     setShowConfirm(true);
   };
 
-  const confirmSend = () => {
-    startTransition(() => {
-      sendMailAction({
-        ...form,
-        recipients: recipients.length ? recipients : undefined,
-      })
-        .then((data) => {
-          if (data?.error) setError(data?.error);
-          if (data?.success) setSuccess(data?.success);
-        })
-        .catch(() => setError("Something went wrong!"))
-        .finally(() => setShowConfirm(false));
-    });
+  const confirmSend = async () => {
+    setShowConfirm(false);
+    setError(undefined);
+    setSuccess(undefined);
+    setIsSending(true);
+
+    const payload = {
+      ...form,
+      recipients: recipients.length ? recipients : undefined,
+    };
+
+    try {
+      const res = await fetch("/api/send/holiday", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Send failed.");
+      } else {
+        setSuccess(
+          data.failed > 0
+            ? `Sent to ${data.sent} recipients (${data.failed} failed).`
+            : `Email sent to ${data.sent} recipient${data.sent !== 1 ? "s" : ""}.`,
+        );
+      }
+    } catch {
+      setError("Failed to reach server. Try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleDiscard = () => {
@@ -174,19 +193,10 @@ export default function HolidayForm() {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="image">Image URL </Label>
-          <Input
-            onChange={(e) => {
-              setForm({
-                ...form,
-                image: e.target.value,
-              });
-            }}
-            id="image"
-            type="url"
-            placeholder="Enter the image link"
-            required
-            defaultValue={form.image}
+          <ImageUploader
+            value={form.image}
+            onChange={(url) => setForm({ ...form, image: url })}
+            label="Holiday Image"
           />
         </div>
         <div className="space-y-2">
@@ -295,9 +305,12 @@ export default function HolidayForm() {
           type="button"
           size="lg"
           onClick={handleSendClick}
-          disabled={isPending}>
-          {isPending ? (
-            <LoaderCircle className="animate-spin h-4 w-4" />
+          disabled={isSending}>
+          {isSending ? (
+            <>
+              <LoaderCircle className="animate-spin h-4 w-4 mr-2" />
+              Sending...
+            </>
           ) : recipientCount > 0 ? (
             `Send to ${recipientCount} recipient${recipientCount !== 1 ? "s" : ""}`
           ) : (
@@ -307,7 +320,7 @@ export default function HolidayForm() {
         <PreviewButton
           type="holiday"
           basis={form.basis}
-          data={{ message: form.message, link: form.link }}
+          data={{ message: form.message, link: form.link, image: form.image }}
         />
         <Button
           type="button"
@@ -326,7 +339,7 @@ export default function HolidayForm() {
         recipientCount={recipientCount}
         subject={form.subject}
         basis={form.basis}
-        isPending={isPending}
+        isPending={isSending}
       />
     </form>
   );
