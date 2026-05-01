@@ -20,15 +20,34 @@ interface PtHolidayMailProps {
   link?: string;
 }
 
+const buildPreviewText = (message: string, fallback: string) => {
+  const plain = message
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!plain) return fallback;
+
+  const firstSentence = plain.split(/[.!?]\s/)[0]?.trim() || plain;
+  const teaser = firstSentence.slice(0, 95).trim();
+  return firstSentence.length > 95 ? `${teaser}...` : teaser;
+};
+
 const PtHolidayMail = ({ message, image, link }: PtHolidayMailProps) => {
   const sanitizedHTML = parse(message);
   const year = new Date().getFullYear();
+  const previewText = buildPreviewText(
+    message,
+    "PalmTechnIQ - Warm Holiday Wishes",
+  );
 
   return (
     <Tailwind>
       <Html>
         <Head />
-        <Preview>PalmTechnIQ - Warm Holiday Wishes</Preview>
+        <Preview>{previewText}</Preview>
         <Body style={{ backgroundColor: "#f0f2f0", margin: 0, padding: 0 }}>
           <Container
             style={{
