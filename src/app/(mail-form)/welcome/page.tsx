@@ -10,8 +10,7 @@ import {
   Select,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState, useTransition, useEffect } from "react";
-import { sendMailAction } from "@/_action/welcome/send-mail";
+import { useState, useEffect } from "react";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 import { AlertCircleIcon, LoaderCircle, Trash2 } from "lucide-react";
 import { IBasis } from "@/lib/mail-action/welcome/mail";
@@ -36,7 +35,7 @@ export default function WelcomeForm() {
   const [editorContent, setEditorContent] = useState<string>("");
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
-  const [isPending, startTransition] = useTransition();
+  const [isSending, setIsSending] = useState(false);
   const [form, setForm] = useState<IWelcomeForm>({
     subject: "",
     basis: "ISCE",
@@ -69,19 +68,38 @@ export default function WelcomeForm() {
     setShowConfirm(true);
   };
 
-  const confirmSend = () => {
-    startTransition(() => {
-      sendMailAction({
-        ...form,
-        recipients: recipients.length ? recipients : undefined,
-      })
-        .then((data) => {
-          if (data?.error) setError(data?.error);
-          if (data?.success) setSuccess(data?.success);
-        })
-        .catch(() => setError("Something went wrong!"))
-        .finally(() => setShowConfirm(false));
-    });
+  const confirmSend = async () => {
+    setShowConfirm(false);
+    setError(undefined);
+    setSuccess(undefined);
+    setIsSending(true);
+
+    const payload = {
+      ...form,
+      recipients: recipients.length ? recipients : undefined,
+    };
+
+    try {
+      const res = await fetch("/api/send/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Send failed.");
+      } else {
+        setSuccess(
+          data.failed > 0
+            ? `Sent to ${data.sent} recipients (${data.failed} failed).`
+            : `Email sent to ${data.sent} recipient${data.sent !== 1 ? "s" : ""}.`,
+        );
+      }
+    } catch {
+      setError("Failed to reach server. Try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleDiscard = () => {
@@ -293,9 +311,12 @@ export default function WelcomeForm() {
           type="button"
           size="lg"
           onClick={handleSendClick}
-          disabled={isPending}>
-          {isPending ? (
-            <LoaderCircle className="animate-spin h-4 w-4" />
+          disabled={isSending}>
+          {isSending ? (
+            <>
+              <LoaderCircle className="animate-spin h-4 w-4 mr-2" />
+              Sending...
+            </>
           ) : recipientCount > 0 ? (
             `Send to ${recipientCount} recipient${recipientCount !== 1 ? "s" : ""}`
           ) : (
@@ -324,7 +345,7 @@ export default function WelcomeForm() {
         recipientCount={recipientCount}
         subject={form.subject}
         basis={form.basis}
-        isPending={isPending}
+        isPending={isSending}
       />
     </form>
   );
