@@ -51,7 +51,9 @@ const PtCoursePromoMail = ({
       <Html>
         <Head />
         <Preview>
-          🎓 {courseTitle} — {discountPercent > 0 ? `${discountPercent}% OFF` : `Enroll now`}{deadline ? ` · Offer ends ${deadline}` : ""}
+          🎓 {courseTitle} —{" "}
+          {discountPercent > 0 ? `${discountPercent}% OFF` : `Enroll now`}
+          {deadline ? ` · Offer ends ${deadline}` : ""}
         </Preview>
         <Body style={{ backgroundColor: "#f0f2f0", margin: 0, padding: 0 }}>
           <Container
@@ -61,7 +63,6 @@ const PtCoursePromoMail = ({
               backgroundColor: "#ffffff",
               fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
             }}>
-
             {/* ── Header bar ── */}
             <Section
               style={{
@@ -256,7 +257,8 @@ const PtCoursePromoMail = ({
 
             {/* Fallback CTA when no discount */}
             {discountPercent === 0 && (
-              <Section style={{ textAlign: "center", padding: "8px 36px 36px" }}>
+              <Section
+                style={{ textAlign: "center", padding: "8px 36px 36px" }}>
                 <Button
                   href={link}
                   style={{
@@ -286,7 +288,12 @@ const PtCoursePromoMail = ({
               <Text style={{ fontSize: "12px", margin: "0" }}>
                 Copyright © {year} PalmTechnIQ, All Rights Reserved.
               </Text>
-              <Text style={{ fontSize: "11px", margin: "6px 0 0", color: "#d1d5db" }}>
+              <Text
+                style={{
+                  fontSize: "11px",
+                  margin: "6px 0 0",
+                  color: "#d1d5db",
+                }}>
                 Mailing Address: 1st Floor, (Festac Tower) Chicken Republic
                 Building, 22Rd, Festac Town, Lagos, Nigeria.
               </Text>
@@ -371,7 +378,6 @@ const PtCoursePromoMail = ({
                 />
               </Button>
             </Section>
-
           </Container>
         </Body>
       </Html>

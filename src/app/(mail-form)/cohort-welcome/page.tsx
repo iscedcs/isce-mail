@@ -114,7 +114,18 @@ export default function CohortWelcomeForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", cohortName: "", startDate: "", mentorName: "", communityLink: "", emails: "", link: "", bannerImage: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      cohortName: "",
+      startDate: "",
+      mentorName: "",
+      communityLink: "",
+      emails: "",
+      link: "",
+      bannerImage: "",
+    });
     setEditorContent("");
     setCsvContent("");
     setRecipients([]);

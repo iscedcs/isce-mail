@@ -20,6 +20,7 @@ import CSVUploader, { RecipientItem } from "@/components/shared/csv-uploader";
 import ConfirmSendDialog from "@/components/shared/confirm-send-dialog";
 import PreviewButton from "@/components/shared/preview-button";
 import Editor from "@/components/shared/editor-component/editor";
+import ImageUploader from "@/components/shared/image-uploader";
 
 export interface INewsLetterForm {
   subject: string;
@@ -46,8 +47,14 @@ export default function NewsLetterForm() {
   });
 
   const [recipients, setRecipients] = useState<RecipientItem[]>([]);
-  const { restoreDraft, discardDraft } = useDraftAutosave("newsletter-draft", form, setForm);
-  useEffect(() => { restoreDraft(); }, []);
+  const { restoreDraft, discardDraft } = useDraftAutosave(
+    "newsletter-draft",
+    form,
+    setForm,
+  );
+  useEffect(() => {
+    restoreDraft();
+  }, []);
   const [showConfirm, setShowConfirm] = useState(false);
   const recipientCount =
     recipients.length || form.emails.split(",").filter(Boolean).length;
@@ -98,7 +105,14 @@ export default function NewsLetterForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", image: "", emails: "", link: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      image: "",
+      emails: "",
+      link: "",
+    });
     setEditorContent("");
     setCsvContent("");
     setRecipients([]);
@@ -178,20 +192,10 @@ export default function NewsLetterForm() {
           </Select>
         </div>
         <div className="space-y-2 text-[#949494] ">
-          <Label htmlFor="image">Image URL </Label>
-          <Input
-            onChange={(e) => {
-              setForm({
-                ...form,
-                image: e.target.value,
-              });
-            }}
-            id="image"
-            disabled
-            type="url"
-            placeholder="Enter the image link"
-            required
-            defaultValue={form.image}
+          <ImageUploader
+            value={form.image}
+            onChange={(url) => setForm({ ...form, image: url })}
+            label="Newsletter Image"
           />
         </div>
         <div className="space-y-2">
@@ -296,7 +300,11 @@ export default function NewsLetterForm() {
         {success && <div className="text-emerald-600 ">{success}</div>}
       </div>
       <div className="flex gap-3 items-center">
-        <Button type="button" size="lg" onClick={handleSendClick} disabled={isSending}>
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleSendClick}
+          disabled={isSending}>
           {isSending ? (
             <>
               <LoaderCircle className="animate-spin h-4 w-4 mr-2" />
@@ -308,7 +316,11 @@ export default function NewsLetterForm() {
             "Send Emails"
           )}
         </Button>
-        <PreviewButton type="newsletter" basis={form.basis} data={{ message: form.message, link: form.link }} />
+        <PreviewButton
+          type="newsletter"
+          basis={form.basis}
+          data={{ message: form.message, link: form.link, image: form.image }}
+        />
         <Button
           type="button"
           variant="ghost"

@@ -11,26 +11,57 @@ import {
   Bold,
   Heading1,
   Heading2,
+  ImagePlus,
   Italic,
   Link,
   List,
   ListOrdered,
+  LoaderCircle,
   Redo,
   Strikethrough,
   Underline,
   Undo,
 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 
 interface IProps {
   editor: Editor | null;
 }
+
+const normalizeImageLink = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.includes("{{") || /^(https?:|mailto:|tel:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
 
 const ToolBar = ({ editor }: IProps) => {
   const iconStyle = "w-4 h-4";
   const defaultStyle =
     "border border-[#333] hover:bg-black hover:text-white bg-white text-black";
   const activeStyle = "bg-black text-white";
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const insertImage = useCallback(
+    (src: string, href: string) => {
+      if (!editor) return;
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "image",
+          attrs: {
+            src,
+            href: href || null,
+          },
+        })
+        .run();
+    },
+    [editor],
+  );
 
   const setLink = useCallback(() => {
     if (!editor) return;
@@ -61,10 +92,74 @@ const ToolBar = ({ editor }: IProps) => {
     editor.chain().focus().insertContent("{{url}}").run();
   }, [editor]);
 
+  const insertImageByUrl = useCallback(() => {
+    if (!editor) return;
+    const url = window.prompt("Image URL");
+    if (!url) return;
+    const imageLink = window.prompt(
+      "Optional: where should this image link to when clicked?",
+      "",
+    );
+    if (imageLink === null) return;
+    const normalizedLink = normalizeImageLink(imageLink);
+    insertImage(url, normalizedLink);
+  }, [editor, insertImage]);
+
+  const uploadAndInsertImage = useCallback(
+    async (file: File) => {
+      if (!editor) return;
+      setUploadingImage(true);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.error ?? "Upload failed");
+        }
+        const imageLink = window.prompt(
+          "Optional: where should this image link to when clicked?",
+          "",
+        );
+        if (imageLink === null) {
+          return;
+        }
+        const normalizedLink = normalizeImageLink(imageLink);
+        insertImage(json.url as string, normalizedLink);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to upload image.";
+        window.alert(message);
+      } finally {
+        setUploadingImage(false);
+      }
+    },
+    [editor, insertImage],
+  );
+
+  const handleImageFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        void uploadAndInsertImage(file);
+      }
+      e.target.value = "";
+    },
+    [uploadAndInsertImage],
+  );
+
   if (!editor) return null;
 
   return (
     <div className="flex gap-2 border-[#b5b5b5] border py-[10px] rounded-lg flex-wrap justify-center ">
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={handleImageFileChange}
+      />
+
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -321,6 +416,47 @@ const ToolBar = ({ editor }: IProps) => {
           </TooltipTrigger>
           <TooltipContent className="bg-white border w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5]">
             <p>Insert {"{{url}}"} placeholder</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                imageInputRef.current?.click();
+              }}
+              disabled={uploadingImage}
+              className={defaultStyle}>
+              {uploadingImage ? (
+                <LoaderCircle className={`${iconStyle} animate-spin`} />
+              ) : (
+                <ImagePlus className={iconStyle} />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-white border w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5]">
+            <p>Upload and insert image</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                insertImageByUrl();
+              }}
+              className={defaultStyle}>
+              <ImagePlus className={iconStyle} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-white border w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5]">
+            <p>Insert image by URL</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

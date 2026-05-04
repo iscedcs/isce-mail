@@ -20,6 +20,7 @@ export const sendBulkEmail = async (
   subject: string,
   basis: IBasis,
   message: string,
+  image?: string,
 ): Promise<number> => {
   const resend = getResendInstance(basis);
   const from = getSenderAddress(basis);
@@ -32,8 +33,8 @@ export const sendBulkEmail = async (
       subject,
       react:
         basis === "PalmTechniq"
-          ? PtNewsLetterMail({ message: personalizedMessage })
-          : ISCENewsLetterMail({ message: personalizedMessage }),
+          ? PtNewsLetterMail({ message: personalizedMessage, image })
+          : ISCENewsLetterMail({ message: personalizedMessage, image }),
     };
   });
 
@@ -45,6 +46,7 @@ export const sendBulkEmailTracked = async (
   subject: string,
   basis: IBasis,
   message: string,
+  image?: string,
 ): Promise<BatchResult> => {
   const resend = getResendInstance(basis);
   const from = getSenderAddress(basis);
@@ -57,8 +59,8 @@ export const sendBulkEmailTracked = async (
       subject,
       react:
         basis === "PalmTechniq"
-          ? PtNewsLetterMail({ message: personalizedMessage })
-          : ISCENewsLetterMail({ message: personalizedMessage }),
+          ? PtNewsLetterMail({ message: personalizedMessage, image })
+          : ISCENewsLetterMail({ message: personalizedMessage, image }),
     };
   });
 
