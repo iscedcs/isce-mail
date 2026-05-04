@@ -15,13 +15,22 @@ export async function POST(req: NextRequest) {
     : parseEmailString(body.emails ?? "");
 
   if (!recipients.length) {
-    return NextResponse.json({ error: "No recipients provided." }, { status: 400 });
+    return NextResponse.json(
+      { error: "No recipients provided." },
+      { status: 400 },
+    );
   }
   if (!body.subject) {
-    return NextResponse.json({ error: "Subject is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Subject is required." },
+      { status: 400 },
+    );
   }
   if (!body.cohortName) {
-    return NextResponse.json({ error: "Cohort name is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Cohort name is required." },
+      { status: 400 },
+    );
   }
 
   try {

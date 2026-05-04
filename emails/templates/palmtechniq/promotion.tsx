@@ -36,7 +36,6 @@ const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
               backgroundColor: "#ffffff",
               fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
             }}>
-
             {/* ── Header ── */}
             <Section
               style={{
@@ -195,7 +194,6 @@ const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
                 />
               </Button>
             </Section>
-
           </Container>
         </Body>
       </Html>
@@ -204,4 +202,3 @@ const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
 };
 
 export default PtPromotionMail;
-

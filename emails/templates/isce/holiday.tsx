@@ -25,6 +25,10 @@ const buildPreviewText = (message: string, fallback: string) => {
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -46,6 +50,17 @@ const ISCEHolidayMail = ({ message, image, link }: ISCEHolidayMailProps) => {
         <Head />
         <Preview>{previewText}</Preview>
         <Body style={{ backgroundColor: "#f3f4f6", margin: 0, padding: 0 }}>
+          <div
+            style={{
+              display: "none",
+              overflow: "hidden",
+              lineHeight: "1px",
+              opacity: 0,
+              maxHeight: 0,
+              maxWidth: 0,
+            }}>
+            {previewText}
+          </div>
           <Container
             style={{
               maxWidth: "600px",
@@ -115,7 +130,8 @@ const ISCEHolidayMail = ({ message, image, link }: ISCEHolidayMailProps) => {
             </Section>
 
             {link && (
-              <Section style={{ textAlign: "center", padding: "4px 36px 40px" }}>
+              <Section
+                style={{ textAlign: "center", padding: "4px 36px 40px" }}>
                 <Button
                   href={link}
                   style={{

@@ -50,7 +50,11 @@ export default function CurriculumForm() {
     bannerImage: "",
   });
 
-  const { restoreDraft, discardDraft } = useDraftAutosave("curriculum-draft", form, setForm);
+  const { restoreDraft, discardDraft } = useDraftAutosave(
+    "curriculum-draft",
+    form,
+    setForm,
+  );
   useEffect(() => {
     restoreDraft();
   }, []);
@@ -104,7 +108,15 @@ export default function CurriculumForm() {
 
   const handleDiscard = () => {
     discardDraft();
-    setForm({ subject: "", basis: "ISCE", message: "", courseName: "", emails: "", link: "", bannerImage: "" });
+    setForm({
+      subject: "",
+      basis: "ISCE",
+      message: "",
+      courseName: "",
+      emails: "",
+      link: "",
+      bannerImage: "",
+    });
     setEditorContent("");
     setCsvContent("");
     setRecipients([]);

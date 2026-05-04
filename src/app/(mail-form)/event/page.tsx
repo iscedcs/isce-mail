@@ -20,6 +20,7 @@ import CSVUploader from "@/components/shared/csv-uploader";
 import ConfirmSendDialog from "@/components/shared/confirm-send-dialog";
 import PreviewButton from "@/components/shared/preview-button";
 import Editor from "@/components/shared/editor-component/editor";
+import ImageUploader from "@/components/shared/image-uploader";
 
 export interface IRecipient {
   email: string;
@@ -235,20 +236,10 @@ export default function EventsForm() {
           </Select>
         </div>
         <div className="space-y-2 text-[#949494] ">
-          <Label htmlFor="image">Image URL </Label>
-          <Input
-            onChange={(e) => {
-              setForm({
-                ...form,
-                image: e.target.value,
-              });
-            }}
-            id="image"
-            disabled
-            type="url"
-            placeholder="Enter the image link"
-            required
-            defaultValue={form.image}
+          <ImageUploader
+            value={form.image}
+            onChange={(url) => setForm({ ...form, image: url })}
+            label="Event Image"
           />
         </div>
         <div className="space-y-2">

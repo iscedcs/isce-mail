@@ -23,13 +23,22 @@ export async function POST(req: NextRequest) {
   recipients = recipients.filter((r) => r.email);
 
   if (!recipients.length) {
-    return NextResponse.json({ error: "No recipients provided." }, { status: 400 });
+    return NextResponse.json(
+      { error: "No recipients provided." },
+      { status: 400 },
+    );
   }
   if (!body.subject) {
-    return NextResponse.json({ error: "Subject is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Subject is required." },
+      { status: 400 },
+    );
   }
   if (!body.message) {
-    return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Message is required." },
+      { status: 400 },
+    );
   }
 
   try {

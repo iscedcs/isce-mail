@@ -53,8 +53,8 @@ function resolveTemplate(type: string, basis: string, data: any) {
         : IsceWelcomeMail({ message: d.message, link: d.link });
     case "newsletter":
       return isPT
-        ? PtNewsletterMail({ message: d.message, link: d.link })
-        : IsceNewsletterMail({ message: d.message, link: d.link });
+        ? PtNewsletterMail({ message: d.message, image: d.image })
+        : IsceNewsletterMail({ message: d.message, image: d.image });
     case "promotion":
       return isPT
         ? PtPromotionMail({ message: d.message, link: d.link, image: d.image })
