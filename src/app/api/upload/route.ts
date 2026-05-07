@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+];
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const s3 = new S3Client({
   region: process.env.DO_SPACES_REGION!,
@@ -24,13 +30,16 @@ export async function POST(req: NextRequest) {
   }
   if (!ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json(
-      { error: "Only JPEG, PNG, WebP and GIF images are allowed." },
+      {
+        error:
+          "Only JPEG, PNG, WebP, GIF images and PDF files are allowed.",
+      },
       { status: 400 },
     );
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "File exceeds the 5 MB limit." },
+      { error: "File exceeds the 10 MB limit." },
       { status: 400 },
     );
   }

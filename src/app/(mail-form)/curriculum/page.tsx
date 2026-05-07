@@ -12,7 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
-import { AlertCircleIcon, LoaderCircle, Trash2 } from "lucide-react";
+import {
+  AlertCircleIcon,
+  FileText,
+  LoaderCircle,
+  Trash2,
+  UploadCloudIcon,
+  XIcon,
+} from "lucide-react";
 import { IBasis } from "@/lib/mail-action/curriculum/mail";
 import { TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +36,7 @@ export interface ICurriculumForm {
   courseName: string;
   emails: string;
   link: string;
+  pdfUrl: string;
   bannerImage: string;
 }
 
@@ -40,6 +48,8 @@ export default function CurriculumForm() {
   const [isSending, setIsSending] = useState(false);
   const [recipients, setRecipients] = useState<RecipientItem[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | undefined>();
   const [form, setForm] = useState<ICurriculumForm>({
     subject: "",
     basis: "ISCE",
@@ -47,6 +57,7 @@ export default function CurriculumForm() {
     courseName: "",
     emails: "",
     link: "",
+    pdfUrl: "",
     bannerImage: "",
   });
 
@@ -115,6 +126,7 @@ export default function CurriculumForm() {
       courseName: "",
       emails: "",
       link: "",
+      pdfUrl: "",
       bannerImage: "",
     });
     setEditorContent("");
@@ -139,6 +151,38 @@ export default function CurriculumForm() {
     }
   };
 
+  const handlePdfUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setPdfError(undefined);
+
+    if (file.type !== "application/pdf") {
+      setPdfError("Only PDF files are supported for curriculum upload.");
+      event.target.value = "";
+      return;
+    }
+
+    setPdfUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "PDF upload failed");
+      setForm((prev) => ({ ...prev, pdfUrl: json.url as string }));
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error
+          ? uploadError.message
+          : "PDF upload failed";
+      setPdfError(message);
+    } finally {
+      setPdfUploading(false);
+      event.target.value = "";
+    }
+  };
+
   return (
     <form className="space-y-4 px-4 md:px-6 max-w-3xl mx-auto py-10">
       <div className="space-y-2">
@@ -146,7 +190,9 @@ export default function CurriculumForm() {
         <p className="text-gray-500 dark:text-gray-400">
           Share a course curriculum with prospective or enrolled students.
           Include the course name, a week-by-week breakdown, and an enrollment
-          link. Attach a CSV file with recipients&apos; email addresses.
+          link (optional). You can also upload a curriculum PDF and include it
+          as a CTA in the email. Attach a CSV file with recipients&apos; email
+          addresses.
         </p>
       </div>
       <div className="space-y-4">
@@ -221,9 +267,70 @@ export default function CurriculumForm() {
             id="link"
             type="url"
             placeholder="https://..."
-            required
             defaultValue={form.link}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="flex gap-1.5 items-center" htmlFor="curriculumPdf">
+            Curriculum PDF (optional)
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer" />
+                </TooltipTrigger>
+                <TooltipContent className="bg-white border w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5]">
+                  <p>
+                    Upload a PDF curriculum and a dedicated button will appear
+                    in the email.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+
+          <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 bg-muted/20">
+            <label
+              htmlFor="curriculumPdf"
+              className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+              {pdfUploading ? (
+                <LoaderCircle className="w-4 h-4 animate-spin" />
+              ) : (
+                <UploadCloudIcon className="w-4 h-4" />
+              )}
+              {pdfUploading ? "Uploading PDF..." : "Upload PDF"}
+            </label>
+            <Input
+              id="curriculumPdf"
+              type="file"
+              accept="application/pdf"
+              onChange={handlePdfUpload}
+              className="hidden"
+            />
+
+            {form.pdfUrl && (
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4 text-[#0f766e]" />
+                <a
+                  href={form.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline text-[#0f766e] truncate max-w-[350px]">
+                  View uploaded curriculum PDF
+                </a>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setForm((prev) => ({ ...prev, pdfUrl: "" }))}>
+                  <XIcon className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+
+            {pdfError && <p className="mt-2 text-sm text-destructive">{pdfError}</p>}
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="message">Curriculum - Editor</Label>
@@ -310,6 +417,7 @@ export default function CurriculumForm() {
           data={{
             message: form.message,
             link: form.link,
+            pdfUrl: form.pdfUrl,
             courseName: form.courseName,
             bannerImage: form.bannerImage,
           }}

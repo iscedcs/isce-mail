@@ -18,7 +18,8 @@ import parse from "html-react-parser";
 interface ISCECurriculumMailProps {
   message: string;
   courseName: string;
-  link: string;
+  link?: string;
+  pdfUrl?: string;
   bannerImage?: string;
 }
 
@@ -26,10 +27,13 @@ const ISCECurriculumMail = ({
   message,
   courseName,
   link,
+  pdfUrl,
   bannerImage,
 }: ISCECurriculumMailProps) => {
   const sanitizedHTML = parse(message);
   const date = new Date().getFullYear();
+  const enrollmentLink = link?.trim();
+  const curriculumPdfLink = pdfUrl?.trim();
 
   return (
     <Tailwind>
@@ -58,14 +62,23 @@ const ISCECurriculumMail = ({
               {/* Banner Image */}
               {bannerImage && (
                 <Section className="w-full">
-                  <Link href={link} style={{ display: "block" }}>
+                  {enrollmentLink ? (
+                    <Link href={enrollmentLink} style={{ display: "block" }}>
+                      <Img
+                        src={bannerImage}
+                        width="600"
+                        style={{ display: "block", width: "100%" }}
+                        alt="Course banner"
+                      />
+                    </Link>
+                  ) : (
                     <Img
                       src={bannerImage}
                       width="600"
                       style={{ display: "block", width: "100%" }}
                       alt="Course banner"
                     />
-                  </Link>
+                  )}
                 </Section>
               )}
 
@@ -75,14 +88,27 @@ const ISCECurriculumMail = ({
               </Section>
 
               {/* CTA */}
-              <Section className="text-center pb-8">
-                <Button
-                  href={link}
-                  className="cursor-pointer text-white text-[13px] bg-black"
-                  style={{ padding: "12px 28px", margin: "0 auto" }}>
-                  Enroll Now
-                </Button>
-              </Section>
+              {enrollmentLink && (
+                <Section className="text-center pb-4">
+                  <Button
+                    href={enrollmentLink}
+                    className="cursor-pointer text-white text-[13px] bg-black"
+                    style={{ padding: "12px 28px", margin: "0 auto" }}>
+                    Enroll Now
+                  </Button>
+                </Section>
+              )}
+
+              {curriculumPdfLink && (
+                <Section className="text-center pb-8">
+                  <Button
+                    href={curriculumPdfLink}
+                    className="cursor-pointer text-white text-[13px] bg-[#0f766e]"
+                    style={{ padding: "12px 28px", margin: "0 auto" }}>
+                    View Curriculum PDF
+                  </Button>
+                </Section>
+              )}
 
               <Hr className="border-[#e5e5e5]" />
 

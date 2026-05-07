@@ -21,7 +21,8 @@ export const sendBulkEmail = async (
   basis: IBasis,
   message: string,
   courseName: string,
-  link: string,
+  link?: string,
+  pdfUrl?: string,
   bannerImage?: string,
 ): Promise<number> => {
   const resend = getResendInstance(basis);
@@ -39,12 +40,14 @@ export const sendBulkEmail = async (
               message: personalizedMessage,
               courseName,
               link,
+              pdfUrl,
               bannerImage,
             })
           : ISCECurriculumMail({
               message: personalizedMessage,
               courseName,
               link,
+              pdfUrl,
               bannerImage,
             }),
     };
@@ -59,7 +62,8 @@ export const sendBulkEmailTracked = async (
   basis: IBasis,
   message: string,
   courseName: string,
-  link: string,
+  link?: string,
+  pdfUrl?: string,
   bannerImage?: string,
 ): Promise<BatchResult> => {
   const resend = getResendInstance(basis);
@@ -77,12 +81,14 @@ export const sendBulkEmailTracked = async (
               message: personalizedMessage,
               courseName,
               link,
+              pdfUrl,
               bannerImage,
             })
           : ISCECurriculumMail({
               message: personalizedMessage,
               courseName,
               link,
+              pdfUrl,
               bannerImage,
             }),
     };
