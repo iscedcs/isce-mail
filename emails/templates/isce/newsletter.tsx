@@ -20,6 +20,7 @@ import parse from "html-react-parser";
 interface ISCENewsLetterMailProps {
   message: string;
   link?: string;
+  image?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
