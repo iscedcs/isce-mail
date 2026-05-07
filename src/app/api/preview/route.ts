@@ -96,12 +96,16 @@ function resolveTemplate(type: string, basis: string, data: any) {
         ? PtCurriculumMail({
             message: d.message,
             link: d.link,
+            pdfUrl: d.pdfUrl,
             courseName: d.courseName,
+            bannerImage: d.bannerImage,
           })
         : IsceCurriculumMail({
             message: d.message,
             link: d.link,
+            pdfUrl: d.pdfUrl,
             courseName: d.courseName,
+            bannerImage: d.bannerImage,
           });
     case "course-promo":
       return isPT

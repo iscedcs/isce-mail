@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       body.message,
       body.courseName,
       body.link,
+      body.pdfUrl,
       body.bannerImage,
     );
 
