@@ -21,7 +21,7 @@ interface ISCECohortWelcomeMailProps {
   startDate: string;
   mentorName: string;
   communityLink: string;
-  link: string;
+  link?: string;
   bannerImage?: string;
 }
 
@@ -36,6 +36,7 @@ const ISCECohortWelcomeMail = ({
 }: ISCECohortWelcomeMailProps) => {
   const sanitizedHTML = parse(message);
   const date = new Date().getFullYear();
+  const courseLink = link?.trim();
 
   return (
     <Tailwind>
@@ -67,14 +68,23 @@ const ISCECohortWelcomeMail = ({
               {/* Banner Image */}
               {bannerImage && (
                 <Section className="w-full">
-                  <Link href={link} style={{ display: "block" }}>
+                  {courseLink ? (
+                    <Link href={courseLink} style={{ display: "block" }}>
+                      <Img
+                        src={bannerImage}
+                        width="600"
+                        style={{ display: "block", width: "100%" }}
+                        alt="Cohort banner"
+                      />
+                    </Link>
+                  ) : (
                     <Img
                       src={bannerImage}
                       width="600"
                       style={{ display: "block", width: "100%" }}
                       alt="Cohort banner"
                     />
-                  </Link>
+                  )}
                 </Section>
               )}
 
@@ -110,14 +120,16 @@ const ISCECohortWelcomeMail = ({
               )}
 
               {/* Course CTA */}
-              <Section className="text-center pb-8">
-                <Button
-                  href={link}
-                  className="cursor-pointer text-white text-[13px] bg-black"
-                  style={{ padding: "12px 28px", margin: "0 auto" }}>
-                  Go to Course Dashboard →
-                </Button>
-              </Section>
+              {courseLink && (
+                <Section className="text-center pb-8">
+                  <Button
+                    href={courseLink}
+                    className="cursor-pointer text-white text-[13px] bg-black"
+                    style={{ padding: "12px 28px", margin: "0 auto" }}>
+                    Go to Course Dashboard →
+                  </Button>
+                </Section>
+              )}
 
               <Hr className="border-[#e5e5e5]" />
 
