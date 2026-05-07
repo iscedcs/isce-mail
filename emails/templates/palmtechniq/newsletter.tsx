@@ -19,6 +19,7 @@ import parse from "html-react-parser";
 
 interface PtNewsLetterMailProps {
   message: string;
+  image?: string;
   link?: string;
 }
 
