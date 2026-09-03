@@ -75,7 +75,7 @@ const ISCEHolidayMail = ({ message, image, link }: ISCEHolidayMailProps) => {
                 borderBottom: "3px solid #ffffff",
               }}>
               <Img
-                src="https://www.isce.tech/images/fi-white.webpp"
+                src="https://www.isce.tech/images/fi-white.webp"
                 width="88"
                 alt="ISCE"
                 style={{ display: "block", margin: "0 auto" }}
