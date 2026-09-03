@@ -49,7 +49,7 @@ const ISCECohortWelcomeMail = ({
               <Section className="bg-[#000]">
                 <Img
                   className="mx-auto py-3"
-                  src="https://www.isce.tech/images/fi-white.webpp"
+                  src="https://www.isce.tech/images/fi-white.webp"
                   width="80"
                   height="80"
                 />

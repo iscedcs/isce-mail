@@ -40,7 +40,7 @@ const ISCEAnnouncementMail = ({ message, link }: ISCEAnnouncementMailProps) => {
               <Section className="bg-[#000]">
                 <Img
                   className="mx-auto py-3 h-full object-cover"
-                  src={`https://www.isce.tech/images/fi-white.webpp`}
+                  src={`https://www.isce.tech/images/fi-white.webp`}
                   width="100"
                   height="100"
                 />
