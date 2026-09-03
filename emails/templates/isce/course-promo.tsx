@@ -50,7 +50,7 @@ const ISCECoursePromoMail = ({
               <Section className="bg-[#000]">
                 <Img
                   className="mx-auto py-3"
-                  src="https://www.isce.tech/_next/image?url=%2Ffi-white.webp&w=128&q=75"
+                  src="https://www.isce.tech/image/fi-white.webp"
                   width="80"
                   height="80"
                 />
