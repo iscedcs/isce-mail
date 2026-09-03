@@ -55,7 +55,7 @@ const PtCurriculumMail = ({
               {/* Course Banner */}
               <Section
                 style={{
-                  backgroundImage: "url(https://isce-mail.vercel.app/static/PalmTechnIQ.png)",
+                  backgroundImage: `url(${process.env.NEXT_PUBLIC_APP_URL}/static/PalmTechnIQ.png)`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }}

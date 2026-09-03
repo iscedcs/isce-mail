@@ -52,7 +52,7 @@ const RegCrashCourse = ({
                   width="200"
                   className="mx-auto rounded-md md:object-cover object-contain  w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/reg-crash-course.png`}
+                  src={`${process.env.NEXT_PUBLIC_APP_URL}/static/template-images/reg-crash-course.png`}
                 />
               </Section>
               <Section>

@@ -47,7 +47,7 @@ const SignIn = ({ fullName = "Nweke Ifeagwu" }: SignInProps) => {
                   width="200"
                   className="mx-auto rounded-md md:object-cover object-contain w-full"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/thanks.png`}
+                  src={`${process.env.NEXT_PUBLIC_APP_URL}/static/template-images/thanks.png`}
                 />
               </Section>
               <Section>

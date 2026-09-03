@@ -51,7 +51,7 @@ const ISCEEventMail = ({ message, link }: ISCEEventMailProps) => {
                   width="200"
                   className="mx-auto rounded-md object-contain md:object-cover w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/isce-events.png`}
+                  src={`${process.env.NEXT_PUBLIC_APP_URL}/static/template-images/isce-events.png`}
                 />
               </Section>
               <Section>{santizedHTML}</Section>
