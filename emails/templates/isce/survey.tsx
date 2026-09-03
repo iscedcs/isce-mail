@@ -40,7 +40,7 @@ const ISCESurveyMail = ({ message, link }: ISCESurveyMailProps) => {
               <Section className="bg-[#000]">
                 <Img
                   className="mx-auto py-3 h-full object-cover"
-                  src={`https://www.isce.tech/image/fi-white.webp`}
+                  src={`https://www.isce.tech/images/fi-white.webpp`}
                   width="100"
                   height="100"
                 />

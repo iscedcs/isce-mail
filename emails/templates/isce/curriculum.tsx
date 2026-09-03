@@ -46,7 +46,7 @@ const ISCECurriculumMail = ({
               <Section className="bg-[#000]">
                 <Img
                   className="mx-auto py-3"
-                  src="https://www.isce.tech/image/fi-white.webp"
+                  src="https://www.isce.tech/images/fi-white.webpp"
                   width="80"
                   height="80"
                 />
