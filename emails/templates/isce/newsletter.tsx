@@ -51,7 +51,7 @@ const ISCENewsLetterMail = ({ message }: ISCENewsLetterMailProps) => {
                   width="200"
                   className="mx-auto rounded-md object-contain md:object-cover w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/isce-newsletter.png`}
+                  src={`${process.env.NEXT_PUBLIC_APP_URL}/static/template-images/isce-newsletter.png`}
                 />
               </Section>
               <Section>{santizedHTML}</Section>

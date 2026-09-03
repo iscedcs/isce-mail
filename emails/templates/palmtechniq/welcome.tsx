@@ -50,7 +50,7 @@ const PtWelcomeMail = ({ message, link }: PtWelcomeMailProps) => {
                   width="200"
                   className="mx-auto rounded-md object-contain w-full pt-6"
                   height="200"
-                  src={`https://isce-mail.vercel.app/static/template-images/palmtechniq-welcome.png`}
+                  src={`${process.env.NEXT_PUBLIC_APP_URL}/static/template-images/palmtechniq-welcome.png`}
                 />
               </Section>
               <Section>{santizedHTML}</Section>
