@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -311,29 +311,57 @@ export default function EventsForm() {
               )
               .join("\n")}
             onChange={(e) => {
-              const recipients = e.target.value
-                .split("\n")
-                .map((line) => {
-                  const [email, firstname, url] = line.split(",");
-                  return {
-                    email: email?.trim() || "",
-                    firstname: firstname?.trim() || "",
-                    url: url?.trim() || "",
-                  };
-                })
-                .filter(
-                  (r) =>
-                    isValidEmail(r.email) &&
-                    r.firstname &&
-                    isValidUrl(r.url) &&
-                    !form.recipients.some(
-                      (existing) => existing.email === r.email,
-                    ),
-                );
-              setForm({
-                ...form,
-                recipients: [...form.recipients, ...recipients],
-              });
+              const seen = new Set<string>();
+              const parsed: IRecipient[] = [];
+
+              // Each "line" can be:
+              //   a) a newline-separated entry in "email,firstname,url" format, OR
+              //   b) multiple comma-separated plain emails on one line.
+              // We detect (b) by checking if the parts after the first look like emails.
+              const lines = e.target.value.split("\n");
+
+              for (const rawLine of lines) {
+                const trimmedLine = rawLine.trim();
+                if (!trimmedLine) continue;
+
+                const parts = trimmedLine
+                  .split(",")
+                  .map((p) => p.trim())
+                  .filter(Boolean);
+
+                if (parts.length === 0) continue;
+
+                // Check how many parts look like email addresses
+                const emailParts = parts.filter((p) => isValidEmail(p));
+
+                if (emailParts.length > 1) {
+                  // Multiple emails on one line – treat each as a separate recipient
+                  for (const email of emailParts) {
+                    if (seen.has(email)) continue;
+                    seen.add(email);
+                    parsed.push({
+                      email,
+                      firstname: email.split("@")[0] || "",
+                      url: "",
+                    });
+                  }
+                } else {
+                  // Standard "email,firstname,url" format (one email per line)
+                  const [email, firstname, url] = parts;
+                  const trimmedEmail = email || "";
+                  if (!isValidEmail(trimmedEmail)) continue;
+                  if (!isValidUrl(url || "")) continue;
+                  if (seen.has(trimmedEmail)) continue;
+                  seen.add(trimmedEmail);
+                  parsed.push({
+                    email: trimmedEmail,
+                    firstname: firstname || trimmedEmail.split("@")[0] || "",
+                    url: url || "",
+                  });
+                }
+              }
+
+              setForm({ ...form, recipients: parsed });
             }}
             id="emails"
             placeholder="Enter email addresses, names, and optional URLs (format: email,firstname,url) separated by new lines"
