@@ -1,39 +1,68 @@
 /**
- * In-memory send history log.
- * Persists for the lifetime of the server process (cleared on restart).
- * Stores up to MAX_ENTRIES entries (newest first).
+ * Persistent send history log  saved to data/history.json.
  */
+
+import fs from "fs";
+import path from "path";
 
 export interface SendHistoryEntry {
   id: string;
-  type: string; // "welcome", "newsletter", etc.
-  basis: string; // "ISCE" | "PalmTechniq"
+  type: string;
+  basis: string;
   subject: string;
   recipientCount: number;
-  sentAt: string; // ISO timestamp
+  sentAt: string;
 }
 
-const MAX_ENTRIES = 200;
+// ---------------------------------------------------------------------------
+// File I/O
+// ---------------------------------------------------------------------------
 
-// Module-level singleton — persists across requests in the same process
-const history: SendHistoryEntry[] = [];
+const DATA_DIR = path.join(process.cwd(), "data");
+const FILE = path.join(DATA_DIR, "history.json");
+const MAX_ENTRIES = 500;
 
-export function logSend(entry: Omit<SendHistoryEntry, "id" | "sentAt">): void {
-  const record: SendHistoryEntry = {
-    ...entry,
-    id: crypto.randomUUID(),
-    sentAt: new Date().toISOString(),
-  };
-  history.unshift(record);
-  if (history.length > MAX_ENTRIES) {
-    history.splice(MAX_ENTRIES);
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function readAll(): SendHistoryEntry[] {
+  ensureDataDir();
+  if (!fs.existsSync(FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(FILE, "utf-8")) as SendHistoryEntry[];
+  } catch {
+    return [];
   }
 }
 
+function writeAll(entries: SendHistoryEntry[]): void {
+  ensureDataDir();
+  fs.writeFileSync(
+    FILE,
+    JSON.stringify(entries.slice(0, MAX_ENTRIES), null, 2),
+    "utf-8",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public API (unchanged signature for backwards compat)
+// ---------------------------------------------------------------------------
+
+export function logSend(entry: Omit<SendHistoryEntry, "id" | "sentAt">): void {
+  const history = readAll();
+  history.unshift({
+    ...entry,
+    id: crypto.randomUUID(),
+    sentAt: new Date().toISOString(),
+  });
+  writeAll(history);
+}
+
 export function getSendHistory(): SendHistoryEntry[] {
-  return [...history];
+  return readAll();
 }
 
 export function clearSendHistory(): void {
-  history.splice(0, history.length);
+  writeAll([]);
 }

@@ -28,6 +28,7 @@ import ConfirmSendDialog from "@/components/shared/confirm-send-dialog";
 import PreviewButton from "@/components/shared/preview-button";
 import Editor from "@/components/shared/editor-component/editor";
 import ImageUploader from "@/components/shared/image-uploader";
+import { useScheduleSubmit } from "@/hooks/useScheduleSubmit";
 
 export interface ICurriculumForm {
   subject: string;
@@ -46,6 +47,7 @@ export default function CurriculumForm() {
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isSending, setIsSending] = useState(false);
+  const { scheduleSubmit, isScheduling } = useScheduleSubmit();
   const [recipients, setRecipients] = useState<RecipientItem[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pdfUploading, setPdfUploading] = useState(false);
@@ -114,6 +116,37 @@ export default function CurriculumForm() {
       setError("Failed to reach server. Try again.");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleSchedule = async (scheduledFor: string) => {
+    setShowConfirm(false);
+    setError(undefined);
+    setSuccess(undefined);
+    const recipientList = recipients.length
+      ? recipients
+      : form.emails
+          .split(",")
+          .filter(Boolean)
+          .map((e) => ({ email: e.trim(), name: "" }));
+    const result = await scheduleSubmit({
+      type: "curriculum",
+      basis: form.basis,
+      subject: form.subject,
+      message: form.message,
+      link: form.link,
+      recipients: recipientList,
+      scheduledFor,
+      templateProps: {
+        courseName: form.courseName,
+        pdfUrl: form.pdfUrl,
+        bannerImage: form.bannerImage,
+      },
+    });
+    if (result.ok) {
+      setSuccess(result.message);
+    } else {
+      setError(result.message);
     }
   };
 
@@ -435,11 +468,12 @@ export default function CurriculumForm() {
       <ConfirmSendDialog
         open={showConfirm}
         onConfirm={confirmSend}
+        onSchedule={handleSchedule}
         onCancel={() => setShowConfirm(false)}
         recipientCount={recipientCount}
         subject={form.subject}
         basis={form.basis}
-        isPending={isSending}
+        isPending={isSending || isScheduling}
       />
     </form>
   );

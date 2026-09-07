@@ -21,6 +21,7 @@ import CSVUploader, { RecipientItem } from "@/components/shared/csv-uploader";
 import ConfirmSendDialog from "@/components/shared/confirm-send-dialog";
 import PreviewButton from "@/components/shared/preview-button";
 import ImageUploader from "@/components/shared/image-uploader";
+import { useScheduleSubmit } from "@/hooks/useScheduleSubmit";
 
 export interface IPromotionsForm {
   subject: string;
@@ -37,6 +38,7 @@ export default function PromotionForm() {
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isSending, setIsSending] = useState(false);
+  const { scheduleSubmit, isScheduling } = useScheduleSubmit();
   const [form, setForm] = useState<IPromotionsForm>({
     subject: "",
     basis: "ISCE",
@@ -104,6 +106,27 @@ export default function PromotionForm() {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleSchedule = async (scheduledFor: string) => {
+    setShowConfirm(false);
+    setError(undefined);
+    setSuccess(undefined);
+    const recipientList = recipients.length
+      ? recipients
+      : form.emails.split(",").filter((e) => e.trim()).map((e) => ({ email: e.trim(), name: "" }));
+    const result = await scheduleSubmit({
+      type: "promotion",
+      basis: form.basis,
+      subject: form.subject,
+      message: form.message,
+      link: form.link,
+      image: form.image,
+      recipients: recipientList,
+      scheduledFor,
+    });
+    if (result.ok) setSuccess(result.message);
+    else setError(result.message);
   };
 
   const handleDiscard = () => {
@@ -333,11 +356,12 @@ export default function PromotionForm() {
       <ConfirmSendDialog
         open={showConfirm}
         onConfirm={confirmSend}
+        onSchedule={handleSchedule}
         onCancel={() => setShowConfirm(false)}
         recipientCount={recipientCount}
         subject={form.subject}
         basis={form.basis}
-        isPending={isSending}
+        isPending={isSending || isScheduling}
       />
     </form>
   );

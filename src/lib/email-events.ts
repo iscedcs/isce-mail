@@ -1,8 +1,10 @@
 /**
- * In-memory store for Resend delivery webhook events.
+ * Persistent email event store  saved to data/events.json.
  * Events are pushed when Resend POSTs to /api/webhooks/resend.
- * Stores up to MAX_EVENTS (newest first). Cleared on server restart.
  */
+
+import fs from "fs";
+import path from "path";
 
 export type EmailEventType =
   | "email.sent"
@@ -14,28 +16,65 @@ export type EmailEventType =
   | "email.clicked";
 
 export interface EmailEvent {
-  id: string; // Resend event ID
+  id: string;
   type: EmailEventType;
-  emailId: string; // Resend email ID
+  emailId: string;
   to: string;
   subject?: string;
-  createdAt: string; // ISO
+  /** Links this event back to a campaign record. */
+  campaignId?: string;
+  /** The recipient email this event belongs to (denormalised for display). */
+  recipientEmail?: string;
+  /** Bounce or suppression reason if applicable */
+  bounceReason?: string;
+  createdAt: string;
 }
 
-const MAX_EVENTS = 500;
-const events: EmailEvent[] = [];
+// ---------------------------------------------------------------------------
+// File I/O
+// ---------------------------------------------------------------------------
 
-export function pushEmailEvent(event: EmailEvent): void {
-  events.unshift(event);
-  if (events.length > MAX_EVENTS) {
-    events.splice(MAX_EVENTS);
+const DATA_DIR = path.join(process.cwd(), "data");
+const FILE = path.join(DATA_DIR, "events.json");
+const MAX_EVENTS = 1000;
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function readAll(): EmailEvent[] {
+  ensureDataDir();
+  if (!fs.existsSync(FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(FILE, "utf-8")) as EmailEvent[];
+  } catch {
+    return [];
   }
 }
 
+function writeAll(events: EmailEvent[]): void {
+  ensureDataDir();
+  fs.writeFileSync(
+    FILE,
+    JSON.stringify(events.slice(0, MAX_EVENTS), null, 2),
+    "utf-8",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public API (unchanged signature for backwards compat + new fields)
+// ---------------------------------------------------------------------------
+
+export function pushEmailEvent(event: EmailEvent): void {
+  const events = readAll();
+  events.unshift(event);
+  writeAll(events);
+}
+
 export function getEmailEvents(limit = 200): EmailEvent[] {
-  return events.slice(0, limit);
+  return readAll().slice(0, limit);
 }
 
 export function clearEmailEvents(): void {
-  events.splice(0, events.length);
+  writeAll([]);
 }
