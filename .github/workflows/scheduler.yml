@@ -1,0 +1,37 @@
+﻿name: Mail Scheduler Tick
+
+on:
+  schedule:
+    # Runs every 5 minutes (GitHub Actions cron)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  tick:
+    name: Check & Dispatch Due Scheduled Campaigns
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Scheduler Tick
+        run: |
+          APP_URL="${{ secrets.APP_URL }}"
+          SECRET="${{ secrets.SCHEDULER_SECRET }}"
+
+          if [ -z "$APP_URL" ]; then
+            echo "APP_URL secret is not configured. Please set APP_URL in repository secrets (e.g., https://mail.isce.tech)."
+            exit 0
+          fi
+
+          echo "Triggering scheduler tick on $APP_URL/api/scheduler/tick..."
+          STATUS=$(curl -s -o response.json -w "%{http_code}" \
+            -X POST "$APP_URL/api/scheduler/tick" \
+            -H "x-scheduler-secret: $SECRET" \
+            -H "Content-Type: application/json")
+
+          echo "HTTP Response code: $STATUS"
+          cat response.json
+          echo ""
+
+          if [ "$STATUS" -ge 400 ]; then
+            echo "Scheduler tick returned error status: $STATUS"
+            exit 1
+          fi

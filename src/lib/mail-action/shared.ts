@@ -10,8 +10,8 @@ export type IBasis = "ISCE" | "PalmTechniq";
 /** A single recipient with their display name (for personalisation). */
 export type BatchRecipient = {
   email: string;
-  /** Full name from the sync, or whatever is available. Used for {{firstName}}, {{name}} tokens. */
   name: string;
+  url?: string;
 };
 
 export interface EmailPayload {
@@ -56,11 +56,19 @@ export function interpolate(
   template: string,
   recipient: BatchRecipient,
 ): string {
-  const firstName = recipient.name ? recipient.name.split(" ")[0] : "there";
+  if (!template) return "";
+  const firstName = recipient.name
+    ? recipient.name.trim().split(" ")[0]
+    : recipient.email
+      ? recipient.email.split("@")[0].replace(/[._-]+/g, " ")
+      : "there";
+  const fullName = recipient.name ? recipient.name.trim() : firstName;
+
   return template
     .replace(/\{\{firstName\}\}/gi, firstName)
-    .replace(/\{\{name\}\}/gi, recipient.name || firstName)
-    .replace(/\{\{email\}\}/gi, recipient.email);
+    .replace(/\{\{name\}\}/gi, fullName)
+    .replace(/\{\{email\}\}/gi, recipient.email)
+    .replace(/\{\{url\}\}/gi, recipient.url || "");
 }
 
 // ---------------------------------------------------------------------------
@@ -93,18 +101,59 @@ export async function sendBatch(
 // ---------------------------------------------------------------------------
 
 /**
- * Parse a comma-separated email string into BatchRecipient[].
- * Names will be empty — personalisation will fall back to "there".
+ * Parse an email input string into BatchRecipient[].
+ * Supports:
+ *   - Newline separated "email,firstname,url" or "email,name"
+ *   - Comma-separated emails: "a@b.com, c@d.com"
+ *   - Single email without commas: "a@b.com"
  */
-export function parseEmailString(emails: string): BatchRecipient[] {
-  return emails
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean)
-    .map((email) => ({ email, name: "" }));
+export function parseEmailString(raw: string): BatchRecipient[] {
+  if (!raw) return [];
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const recipients: BatchRecipient[] = [];
+  const seen = new Set<string>();
+
+  const isEmail = (s: string) => /^[^s@]+@[^s@]+\.[^s@]+$/.test(s);
+
+  for (const line of lines) {
+    const parts = line.split(",").map((p) => p.trim());
+    const emailParts = parts.filter((p) => isEmail(p));
+    if (emailParts.length > 1) {
+      for (const email of emailParts) {
+        const clean = email.toLowerCase().trim();
+        if (!seen.has(clean)) {
+          seen.add(clean);
+          recipients.push({ email: clean, name: "" });
+        }
+      }
+    } else if (parts.length > 0 && isEmail(parts[0])) {
+      const clean = parts[0].toLowerCase().trim();
+      if (!seen.has(clean)) {
+        seen.add(clean);
+        recipients.push({
+          email: clean,
+          name: parts[1] || "",
+          url: parts[2] || "",
+        });
+      }
+    }
+  }
+
+  // Fallback for simple comma or whitespace-separated list
+  if (recipients.length === 0 && raw.includes("@")) {
+    const tokens = raw.split(/[,\s;]+/).map((t) => t.trim()).filter((t) => isEmail(t));
+    for (const email of tokens) {
+      const clean = email.toLowerCase();
+      if (!seen.has(clean)) {
+        seen.add(clean);
+        recipients.push({ email: clean, name: "" });
+      }
+    }
+  }
+
+  return recipients;
 }
 
-/** Format a recipient count for the success message. */
 export function recipientLabel(count: number): string {
   return count === 1 ? "1 recipient" : `${count} recipients`;
 }
@@ -116,6 +165,7 @@ export function recipientLabel(count: number): string {
 export interface BatchResult {
   sent: number;
   failed: number;
+  ids: { resendEmailId: string; email: string }[];
 }
 
 /**
@@ -126,10 +176,11 @@ export async function sendBatchTracked(
   resend: Resend,
   payloads: EmailPayload[],
 ): Promise<BatchResult> {
-  if (payloads.length === 0) return { sent: 0, failed: 0 };
+  if (payloads.length === 0) return { sent: 0, failed: 0, ids: [] };
 
   let sent = 0;
   let failed = 0;
+  const ids: { resendEmailId: string; email: string }[] = [];
 
   for (let i = 0; i < payloads.length; i += RESEND_BATCH_LIMIT) {
     const chunk = payloads.slice(i, i + RESEND_BATCH_LIMIT);
@@ -138,9 +189,15 @@ export async function sendBatchTracked(
       if (result.error) {
         failed += chunk.length;
       } else {
-        for (const item of result.data?.data ?? []) {
-          if (item?.id) sent++;
-          else failed++;
+        const items = result.data?.data ?? [];
+        for (let j = 0; j < chunk.length; j++) {
+          const item = items[j];
+          if (item?.id) {
+            sent++;
+            ids.push({ resendEmailId: item.id, email: chunk[j].to });
+          } else {
+            failed++;
+          }
         }
       }
     } catch {
@@ -148,5 +205,5 @@ export async function sendBatchTracked(
     }
   }
 
-  return { sent, failed };
+  return { sent, failed, ids };
 }

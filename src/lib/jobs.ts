@@ -1,62 +1,98 @@
 /**
- * In-memory job store for fire-and-forget email sends.
- * Each job tracks progress (pending → running → done/failed).
- * Stores up to MAX_JOBS (newest first). Cleared on server restart.
+ * Persistent job store  saved to data/jobs.json.
+ * Tracks fire-and-forget email send progress.
  */
 
-export type JobStatus = "pending" | "running" | "done" | "failed";
+import fs from "fs";
+import path from "path";
+
+export type JobStatus = "pending" | "running" | "scheduled" | "done" | "failed";
 
 export interface Job {
   id: string;
-  type: string; // "course-promo", "newsletter", etc.
-  basis: string; // "ISCE" | "PalmTechniq"
+  type: string;
+  basis: string;
   subject: string;
   status: JobStatus;
   total: number;
   sent: number;
   failed: number;
   error?: string;
-  startedAt: string; // ISO
-  completedAt?: string; // ISO
+  /** Campaign ID, if this job is backed by a Campaign record. */
+  campaignId?: string;
+  /** ISO  if set this job should not run until this time. */
+  scheduledFor?: string;
+  startedAt: string;
+  completedAt?: string;
 }
 
-const MAX_JOBS = 100;
-const jobs = new Map<string, Job>();
-const jobOrder: string[] = []; // newest-first insertion order
+// ---------------------------------------------------------------------------
+// File I/O
+// ---------------------------------------------------------------------------
+
+const DATA_DIR = path.join(process.cwd(), "data");
+const FILE = path.join(DATA_DIR, "jobs.json");
+const MAX_JOBS = 200;
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function readAll(): Job[] {
+  ensureDataDir();
+  if (!fs.existsSync(FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(FILE, "utf-8")) as Job[];
+  } catch {
+    return [];
+  }
+}
+
+function writeAll(jobs: Job[]): void {
+  ensureDataDir();
+  // Keep only newest MAX_JOBS
+  const trimmed = jobs.slice(0, MAX_JOBS);
+  fs.writeFileSync(FILE, JSON.stringify(trimmed, null, 2), "utf-8");
+}
+
+// ---------------------------------------------------------------------------
+// Public API (unchanged signature for backwards compat)
+// ---------------------------------------------------------------------------
 
 export function createJob(
-  params: Pick<Job, "type" | "basis" | "subject" | "total">,
+  params: Pick<Job, "type" | "basis" | "subject" | "total"> & {
+    campaignId?: string;
+    scheduledFor?: string;
+  },
 ): Job {
-  const id = crypto.randomUUID();
+  const jobs = readAll();
   const job: Job = {
-    id,
     ...params,
-    status: "pending",
+    id: crypto.randomUUID(),
+    status: params.scheduledFor ? "scheduled" : "pending",
     sent: 0,
     failed: 0,
     startedAt: new Date().toISOString(),
   };
-  jobs.set(id, job);
-  jobOrder.unshift(id);
-  if (jobOrder.length > MAX_JOBS) {
-    const removed = jobOrder.pop()!;
-    jobs.delete(removed);
-  }
+  jobs.unshift(job);
+  writeAll(jobs);
   return job;
 }
 
 export function updateJob(id: string, patch: Partial<Job>): Job | null {
-  const job = jobs.get(id);
-  if (!job) return null;
-  const updated = { ...job, ...patch };
-  jobs.set(id, updated);
+  const jobs = readAll();
+  const idx = jobs.findIndex((j) => j.id === id);
+  if (idx === -1) return null;
+  const updated = { ...jobs[idx], ...patch };
+  jobs[idx] = updated;
+  writeAll(jobs);
   return updated;
 }
 
 export function getJob(id: string): Job | null {
-  return jobs.get(id) ?? null;
+  return readAll().find((j) => j.id === id) ?? null;
 }
 
 export function listJobs(): Job[] {
-  return jobOrder.map((id) => jobs.get(id)!).filter(Boolean);
+  return readAll();
 }
