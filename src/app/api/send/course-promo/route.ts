@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendBulkEmailTracked } from "@/lib/mail-action/course-promo/mail";
 import { parseEmailString, BatchRecipient } from "@/lib/mail-action/shared";
 import { logSend } from "@/lib/send-history";
-import { createCampaign, attachResendIds, updateCampaign } from "@/lib/campaigns";
+import { createCampaignWithBatches } from "@/lib/campaign-db";
 import type { IBasis } from "@/lib/mail-action/course-promo/mail";
 
 export const dynamic = "force-dynamic";
@@ -33,53 +33,37 @@ export async function POST(req: NextRequest) {
   if (!body.subject) return NextResponse.json({ error: "Subject is required." }, { status: 400 });
 
   try {
-    let campaignId = body.campaignId;
-    if (!campaignId) {
-      const campaign = createCampaign({
-        type: "course-promo",
-        basis: body.basis,
-        subject: body.subject,
-        message: body.message ?? "",
-        link: body.link,
-        status: "sending",
-        recipients: recipients.map((rec) => ({
-          email: rec.email,
-          firstname: rec.name ?? "",
-          url: rec.url ?? "",
-          events: {},
-        })),
-      });
-      campaignId = campaign.id;
-    }
-
-    const result = await sendBulkEmailTracked(recipients, body.subject, body.basis as IBasis, body.message ?? "", body.courseTitle ?? body.subject, body.originalPrice ?? "", body.discountPrice ?? "", body.deadline ?? "", body.link ?? "", body.bannerImage);
-
-    if (campaignId) {
-      attachResendIds(campaignId, result.ids ?? []);
-      updateCampaign(campaignId, {
-        status: "sent",
-        sentAt: new Date().toISOString(),
-        stats: {
-          total: recipients.length,
-          sent: result.sent,
-          failed: result.failed,
-          delivered: 0,
-          opened: 0,
-          clicked: 0,
-          bounced: 0,
-          complained: 0,
-        },
-      });
-    }
+    const result = await createCampaignWithBatches({
+      type: "course-promo",
+      basis: body.basis,
+      subject: body.subject,
+      message: body.message ?? "",
+      link: body.link,
+      recipients,
+      templateProps: {
+        courseTitle: body.courseTitle ?? body.subject,
+        originalPrice: body.originalPrice ?? "",
+        discountPrice: body.discountPrice ?? "",
+        deadline: body.deadline ?? "",
+        bannerImage: body.bannerImage,
+      },
+    });
 
     logSend({
       type: "course-promo",
       basis: body.basis,
       subject: body.subject,
-      recipientCount: result.sent,
+      recipientCount: result.batch1SentCount,
     });
 
-    return NextResponse.json({ ...result, campaignId });
+    return NextResponse.json({
+      sent: result.batch1SentCount,
+      failed: 0,
+      campaignId: result.campaignId,
+      batches: result.batches,
+      totalTarget: result.totalTarget,
+      excludedCount: result.excludedCount,
+    });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Send failed." },
