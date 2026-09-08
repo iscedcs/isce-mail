@@ -1,0 +1,682 @@
+[
+    {
+        "result": {
+            "data": {
+                "json": {
+                    "team_id": "53d2aa82-7848-49f5-89dc-dec384a9999e",
+                    "user_id": "7de6cbda-57b1-40ac-8ae2-440f18c413f9",
+                    "name": "isceofficial",
+                    "avatar_url": null,
+                    "is_suspended": false,
+                    "created_at": "2024-05-04 13:41:32.512889+00",
+                    "role": "admin",
+                    "stripe_customer_id": null,
+                    "billing_provider": null,
+                    "is_paying": false,
+                    "is_vercel_installation_user": false
+                }
+            }
+        }
+    },
+    {
+        "result": {
+            "data": {
+                "json": {
+                    "id": "de365a44-0beb-4d44-b640-164bc6bd55da",
+                    "created_at": "2026-04-29 10:00:02.697977+00",
+                    "status": "enabled",
+                    "endpoint": "https://isce-mail.vercel.app/api/webhooks/resend",
+                    "events": [
+                        "contact.created",
+                        "contact.deleted",
+                        "contact.updated",
+                        "domain.created",
+                        "domain.deleted",
+                        "domain.updated",
+                        "email.bounced",
+                        "email.clicked",
+                        "email.complained",
+                        "email.delivered",
+                        "email.delivery_delayed",
+                        "email.failed",
+                        "email.opened",
+                        "email.received",
+                        "email.scheduled",
+                        "email.sent",
+                        "email.suppressed"
+                    ],
+                    "svix_endpoint_id": "ep_3D1k8M9x9MCKRmcTb1I8HzzQsgO",
+                    "webhook_secret_key": "whsec_vquplnm2XbITFtYm4um1qw6XZNe4PF3e"
+                }
+            }
+        }
+    },
+    {
+        "result": {
+            "data": {
+                "json": {
+                    "data": [
+                        {
+                            "id": "msg_3J0IGZdzuz1bxlRaYf5m8CXTdBH",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:31:03.648Z",
+                            "nextAttempt": "2026-09-07T14:36:52.812Z"
+                        },
+                        {
+                            "id": "msg_3J0IDvQPHoyaMe5lfrvVewocUDn",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:30:42.568Z",
+                            "nextAttempt": "2026-09-07T14:36:34.630Z"
+                        },
+                        {
+                            "id": "msg_3J0I9xwHDZEaYOHYFKYxvcyNPR9",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:30:11.048Z",
+                            "nextAttempt": "2026-09-07T14:35:37.730Z"
+                        },
+                        {
+                            "id": "msg_3J0I8MWyvaxuWUysugqiNkkmVjz",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:29:58.296Z",
+                            "nextAttempt": "2026-09-07T14:34:54.131Z"
+                        },
+                        {
+                            "id": "msg_3J0I6un8cqmC7dBeal9FsZGwZqB",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:29:46.788Z",
+                            "nextAttempt": "2026-09-07T14:34:42.226Z"
+                        },
+                        {
+                            "id": "msg_3J0I6cgOgEHKXZy2fZUMEFOooqF",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:29:44.456Z",
+                            "nextAttempt": "2026-09-07T14:34:28.229Z"
+                        },
+                        {
+                            "id": "msg_3J0I4irXN6ZO50x5SSxXLJunebH",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:29:29.332Z",
+                            "nextAttempt": "2026-09-07T14:35:13.555Z"
+                        },
+                        {
+                            "id": "msg_3J0HySRR1LF4JsaABe2ntQKZwWl",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:28:39.484Z",
+                            "nextAttempt": "2026-09-07T14:34:02.158Z"
+                        },
+                        {
+                            "id": "msg_3J0HnUpeHZInUSqx8WtEegXIs3j",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:27:12.252Z",
+                            "nextAttempt": "2026-09-07T14:32:45.861Z"
+                        },
+                        {
+                            "id": "msg_3J0HgcbweV944FrswQBsLgDP2C7",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:26:17.556Z",
+                            "nextAttempt": "2026-09-07T14:58:32.989Z"
+                        },
+                        {
+                            "id": "msg_3J0HdhK4JGuXebT5ZI4vO3MfySF",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:25:54.280Z",
+                            "nextAttempt": "2026-09-07T14:56:22.542Z"
+                        },
+                        {
+                            "id": "msg_3J0HbNqUDOLpXFuEcoh279xtcFj",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:25:35.880Z",
+                            "nextAttempt": "2026-09-07T15:02:40.849Z"
+                        },
+                        {
+                            "id": "msg_3J0HXH0oUV6aKjqUOySjpcgffxv",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:25:03.156Z",
+                            "nextAttempt": "2026-09-07T15:00:16.133Z"
+                        },
+                        {
+                            "id": "msg_3J0HVGz6ANzQQlu8g3b5xRYS9Vv",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:24:47.240Z",
+                            "nextAttempt": "2026-09-07T14:58:04.158Z"
+                        },
+                        {
+                            "id": "msg_3J0HUCPKR0vfTQ8G2oKFf3EpaJj",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:24:38.704Z",
+                            "nextAttempt": "2026-09-07T15:00:55.609Z"
+                        },
+                        {
+                            "id": "msg_3J0HTsTIroFsKePEObJv35Lm6tb",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:24:36.132Z",
+                            "nextAttempt": "2026-09-07T14:59:59.659Z"
+                        },
+                        {
+                            "id": "msg_3J0HQj1PQrSgxnySaCoHXGSxjF1",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:24:11.044Z",
+                            "nextAttempt": "2026-09-07T15:02:00.018Z"
+                        },
+                        {
+                            "id": "msg_3J0HNo9pgRGOdMbv4WrkbPdlrw7",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:23:47.852Z",
+                            "nextAttempt": "2026-09-07T15:00:58.777Z"
+                        },
+                        {
+                            "id": "msg_3J0HJN6z4bRmQ0oakZJOcyYyZDD",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:23:12.544Z",
+                            "nextAttempt": "2026-09-07T15:04:42.613Z"
+                        },
+                        {
+                            "id": "msg_3J0HJ62lUr63KUEJS3XJYNYLRzr",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:23:10.348Z",
+                            "nextAttempt": "2026-09-07T14:53:39.779Z"
+                        },
+                        {
+                            "id": "msg_3J0HF5Stp32TJ2FG8Jadh8HMJGp",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:22:38.444Z",
+                            "nextAttempt": "2026-09-07T14:55:18.829Z"
+                        },
+                        {
+                            "id": "msg_3J0HBsR2e3gtZJNldRkMANR9o0l",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:22:12.912Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0HBHcyZnnTAoTB3IO3gTkIy5f",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:22:08.168Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0H5FQCO3ZMYLOXG3J34V7wOQJ",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:21:20.140Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0H2NAlwyTxOgNJrJLm5W5mHdv",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:20:57.268Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0H0icMS6ao0lQikSzfLsa8lLj",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:20:44.100Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0Gy049RmyHGdPh47LBCxX8RVX",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:20:22.476Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GxpTk0eSUEKC9suM7Z06JiU3",
+                            "eventType": "email.delivery_delayed",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:20:21.108Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GwQk8uoFdeY1aotcXOU3RCe7",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:20:09.996Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GutgFCBZoon0vSydJABmWJP5",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:19:57.792Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GodZwjBfCJ44HdGhKWXViy6h",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:19:07.984Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GmJhmaVsD7UDVLqcviKFspCB",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:18:49.508Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0Glz90J3khVhEBmKsfSo2H8jX",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:18:46.876Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GjKaIz6FOJ6k61k4sxbJ2yqt",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:18:25.752Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0Gj2iykPv1mePCnvoZewI5iwB",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:18:23.452Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GZmIacW7az0kyRGe4AtaEe7z",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:17:09.732Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GW3Aedz1hKzuPnjJ1hBUImw3",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:16:40.052Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GTuw3xdOysgqaHEebJdHPuhD",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:16:23.084Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GRHt3nmQNPgUtiSue81NHHjD",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:16:02.156Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GQa383ast0IhsYZGRWq7FpTr",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:15:56.540Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GKGGP8hzlKZ3JDMa7cjN539T",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:15:06.248Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GFco4YrnUVRJ3wdNGEkj4Pk7",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:14:29.356Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GEVgQyoMi0UeyY4ITC5YxLdH",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:14:20.488Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GBEdF8X55DEul2N2wQIZLU7D",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:13:54.424Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0GAc3Ul0w6vKdUSROf7E0T9sl",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:13:49.476Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0G9Xn9Ir4JOzQaCUc56QCemfH",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:13:40.984Z",
+                            "nextAttempt": "2026-09-07T14:51:08.456Z"
+                        },
+                        {
+                            "id": "msg_3J0G7th0tZWqJ4nSkPdgnfFjRap",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:13:27.876Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0G1YSAKWm5iR7h0l3bRJdunJH",
+                            "eventType": "email.delivered",
+                            "status": 0,
+                            "timestamp": "2026-09-07T14:12:37.392Z",
+                            "nextAttempt": null
+                        },
+                        {
+                            "id": "msg_3J0FxzaZkVTUzjrtZRLz1sNVgvH",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:12:09.036Z",
+                            "nextAttempt": "2026-09-07T14:49:14.669Z"
+                        },
+                        {
+                            "id": "msg_3J0FvgbRqHvNYUcMZC1hxmDXq0d",
+                            "eventType": "email.delivered",
+                            "status": 3,
+                            "timestamp": "2026-09-07T14:11:50.700Z",
+                            "nextAttempt": "2026-09-07T14:51:11.280Z"
+                        }
+                    ],
+                    "pagination": {
+                        "iterator": "msg_3J0FvgbRqHvNYUcMZC1hxmDXq0d",
+                        "hasNext": true
+                    }
+                },
+                "meta": {
+                    "values": {
+                        "data.0.timestamp": [
+                            "Date"
+                        ],
+                        "data.0.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.1.timestamp": [
+                            "Date"
+                        ],
+                        "data.1.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.2.timestamp": [
+                            "Date"
+                        ],
+                        "data.2.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.3.timestamp": [
+                            "Date"
+                        ],
+                        "data.3.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.4.timestamp": [
+                            "Date"
+                        ],
+                        "data.4.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.5.timestamp": [
+                            "Date"
+                        ],
+                        "data.5.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.6.timestamp": [
+                            "Date"
+                        ],
+                        "data.6.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.7.timestamp": [
+                            "Date"
+                        ],
+                        "data.7.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.8.timestamp": [
+                            "Date"
+                        ],
+                        "data.8.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.9.timestamp": [
+                            "Date"
+                        ],
+                        "data.9.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.10.timestamp": [
+                            "Date"
+                        ],
+                        "data.10.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.11.timestamp": [
+                            "Date"
+                        ],
+                        "data.11.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.12.timestamp": [
+                            "Date"
+                        ],
+                        "data.12.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.13.timestamp": [
+                            "Date"
+                        ],
+                        "data.13.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.14.timestamp": [
+                            "Date"
+                        ],
+                        "data.14.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.15.timestamp": [
+                            "Date"
+                        ],
+                        "data.15.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.16.timestamp": [
+                            "Date"
+                        ],
+                        "data.16.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.17.timestamp": [
+                            "Date"
+                        ],
+                        "data.17.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.18.timestamp": [
+                            "Date"
+                        ],
+                        "data.18.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.19.timestamp": [
+                            "Date"
+                        ],
+                        "data.19.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.20.timestamp": [
+                            "Date"
+                        ],
+                        "data.20.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.21.timestamp": [
+                            "Date"
+                        ],
+                        "data.22.timestamp": [
+                            "Date"
+                        ],
+                        "data.23.timestamp": [
+                            "Date"
+                        ],
+                        "data.24.timestamp": [
+                            "Date"
+                        ],
+                        "data.25.timestamp": [
+                            "Date"
+                        ],
+                        "data.26.timestamp": [
+                            "Date"
+                        ],
+                        "data.27.timestamp": [
+                            "Date"
+                        ],
+                        "data.28.timestamp": [
+                            "Date"
+                        ],
+                        "data.29.timestamp": [
+                            "Date"
+                        ],
+                        "data.30.timestamp": [
+                            "Date"
+                        ],
+                        "data.31.timestamp": [
+                            "Date"
+                        ],
+                        "data.32.timestamp": [
+                            "Date"
+                        ],
+                        "data.33.timestamp": [
+                            "Date"
+                        ],
+                        "data.34.timestamp": [
+                            "Date"
+                        ],
+                        "data.35.timestamp": [
+                            "Date"
+                        ],
+                        "data.36.timestamp": [
+                            "Date"
+                        ],
+                        "data.37.timestamp": [
+                            "Date"
+                        ],
+                        "data.38.timestamp": [
+                            "Date"
+                        ],
+                        "data.39.timestamp": [
+                            "Date"
+                        ],
+                        "data.40.timestamp": [
+                            "Date"
+                        ],
+                        "data.41.timestamp": [
+                            "Date"
+                        ],
+                        "data.42.timestamp": [
+                            "Date"
+                        ],
+                        "data.43.timestamp": [
+                            "Date"
+                        ],
+                        "data.44.timestamp": [
+                            "Date"
+                        ],
+                        "data.45.timestamp": [
+                            "Date"
+                        ],
+                        "data.45.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.46.timestamp": [
+                            "Date"
+                        ],
+                        "data.47.timestamp": [
+                            "Date"
+                        ],
+                        "data.48.timestamp": [
+                            "Date"
+                        ],
+                        "data.48.nextAttempt": [
+                            "Date"
+                        ],
+                        "data.49.timestamp": [
+                            "Date"
+                        ],
+                        "data.49.nextAttempt": [
+                            "Date"
+                        ]
+                    },
+                    "v": 1
+                }
+            }
+        }
+    },
+    {
+        "result": {
+            "data": {
+                "json": {
+                    "id": "msg_3J0HnUpeHZInUSqx8WtEegXIs3j",
+                    "eventType": "email.delivered",
+                    "timestamp": "2026-09-07T14:27:12.252Z",
+                    "attempts": 2,
+                    "attemptsExceedsLimit": false,
+                    "responseStatusCode": 500,
+                    "responseBody": "",
+                    "messagePayload": {
+                        "created_at": "2026-09-07T14:27:11.462Z",
+                        "data": {
+                            "created_at": "2026-09-07T13:18:56.867Z",
+                            "email_id": "a03e6fdf-cf72-4918-8831-0896908e3391",
+                            "from": "PalmTechnIQ <support@palmtechniq.com>",
+                            "message_id": "<010001a07c059a5a-3918539a-eeef-4808-bf8f-ff4f292a932f-000000@email.amazonses.com>",
+                            "subject": "Be honest. What did you do with August?",
+                            "to": [
+                                "daniel***********@gmail.com"
+                            ]
+                        },
+                        "type": "email.delivered"
+                    }
+                },
+                "meta": {
+                    "values": {
+                        "timestamp": [
+                            "Date"
+                        ]
+                    },
+                    "v": 1
+                }
+            }
+        }
+    }
+]

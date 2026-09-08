@@ -16,7 +16,11 @@ export interface CampaignRecipient {
   email: string;
   firstname: string;
   url?: string;
-  /** Set after Resend accepts the send  used to match webhook events. */
+  batchNumber?: number;
+  scheduledFor?: string | null;
+  status?: string;
+  bounceReason?: string;
+  /** Set after Resend accepts the send — used to match webhook events. */
   resendEmailId?: string;
   /** Event timestamps populated by the Resend webhook. */
   events: {
@@ -29,22 +33,32 @@ export interface CampaignRecipient {
   };
 }
 
+export interface CampaignBatch {
+  batchNumber: number;
+  count: number;
+  status: "sent" | "scheduled" | "sending" | "pending";
+  scheduledFor: string | null;
+  sentAt?: string | null;
+  recipients?: any[];
+}
+
 export type CampaignStatus =
   | "scheduled"
   | "sending"
   | "sent"
+  | "completed"
   | "failed"
   | "cancelled";
 
 export interface CampaignStats {
   total: number;
   sent: number;
-  failed: number;
+  failed?: number;
   delivered: number;
   opened: number;
   clicked: number;
   bounced: number;
-  complained: number;
+  complained?: number;
 }
 
 export interface Campaign {
@@ -56,11 +70,13 @@ export interface Campaign {
   link?: string;
   templateProps?: Record<string, any>;
   status: CampaignStatus;
-  /** ISO timestamp  absent means send immediately. */
+  /** ISO timestamp — absent means send immediately. */
   scheduledFor?: string;
-  /** ISO timestamp  set when dispatch completes. */
+  /** ISO timestamp — set when dispatch completes. */
   sentAt?: string;
+  completedAt?: string;
   recipients: CampaignRecipient[];
+  batches?: CampaignBatch[];
   stats: CampaignStats;
   createdAt: string;
 }
@@ -73,7 +89,11 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "campaigns.json");
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (err) {
+    console.warn("[campaigns] Could not create data dir:", err);
+  }
 }
 
 function readAll(): Campaign[] {
@@ -87,8 +107,12 @@ function readAll(): Campaign[] {
 }
 
 function writeAll(campaigns: Campaign[]): void {
-  ensureDataDir();
-  fs.writeFileSync(FILE, JSON.stringify(campaigns, null, 2), "utf-8");
+  try {
+    ensureDataDir();
+    fs.writeFileSync(FILE, JSON.stringify(campaigns, null, 2), "utf-8");
+  } catch (err) {
+    console.error("[campaigns] Failed to write campaigns to disk:", err);
+  }
 }
 
 // ---------------------------------------------------------------------------

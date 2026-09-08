@@ -5,6 +5,8 @@
 
 import { listCampaigns, updateCampaign, attachResendIds } from "@/lib/campaigns";
 import { logSend } from "@/lib/send-history";
+import { prisma } from "@/lib/prisma";
+import { dispatchScheduledBatch } from "@/lib/campaign-db";
 
 // Lazy imports of mail modules to avoid loading all templates at startup
 const sendFunctions: Record<string, () => Promise<any>> = {
@@ -169,5 +171,35 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
     }
   }
 
+  // 2. Check Neon Postgres via Prisma for due batches
+  try {
+    const dueBatches = await prisma.campaignRecipient.findMany({
+      where: {
+        status: { in: ["pending", "scheduled"] },
+        scheduledFor: { lte: now },
+      },
+      select: {
+        campaignId: true,
+        batchNumber: true,
+      },
+      distinct: ["campaignId", "batchNumber"],
+    });
+
+    for (const batch of dueBatches) {
+      try {
+        await dispatchScheduledBatch(batch.campaignId, batch.batchNumber);
+        dispatched++;
+      } catch (batchErr) {
+        console.error(
+          `[scheduler] Failed to auto-dispatch batch ${batch.batchNumber} for campaign ${batch.campaignId}:`,
+          batchErr,
+        );
+      }
+    }
+  } catch (dbErr) {
+    // Database check optional in test / non-db environments
+  }
+
   return { dispatched, skipped: due.length - dispatched };
 }
+

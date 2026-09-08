@@ -5,6 +5,7 @@ import {
 } from "@/lib/palmtechniq-users";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {

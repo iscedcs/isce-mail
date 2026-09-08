@@ -52,11 +52,23 @@ export function useScheduleSubmit() {
         return { ok: false, message: data.error ?? "Failed to schedule." };
       }
       const isScheduled = !!payload.scheduledFor;
+      const hasBatches = data.batches && data.batches.length > 1;
+
+      let message = isScheduled
+        ? `Scheduled for ${new Date(payload.scheduledFor!).toLocaleString()} — ${payload.recipients.length} recipient(s).`
+        : `Dispatched to ${payload.recipients.length} recipient(s).`;
+
+      if (hasBatches && !isScheduled) {
+        message = `Batch 1 dispatched (${data.batch1SentCount || 100} sent today). ${data.batches.length - 1} scheduled batch(es) queued (100/day).`;
+      }
+
+      if (data.excludedCount && data.excludedCount > 0) {
+        message += ` [${data.excludedCount} bounced/suppressed contact(s) auto-excluded to protect quota]`;
+      }
+
       return {
         ok: true,
-        message: isScheduled
-          ? `Scheduled for ${new Date(payload.scheduledFor!).toLocaleString()} — ${payload.recipients.length} recipient(s).`
-          : `Dispatched to ${payload.recipients.length} recipient(s).`,
+        message,
         campaignId: data.id,
       };
     } catch {

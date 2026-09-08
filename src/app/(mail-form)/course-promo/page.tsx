@@ -84,33 +84,34 @@ export default function CoursePromoForm() {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
-    setIsSending(true);
 
-    const payload = {
-      ...form,
-      recipients: recipients.length ? recipients : undefined,
-    };
+    const recipientList = recipients.length
+      ? recipients
+      : form.emails
+          .split(",")
+          .filter(Boolean)
+          .map((e) => ({ email: e.trim(), name: "" }));
 
-    try {
-      const res = await fetch("/api/send/course-promo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Send failed.");
-      } else {
-        setSuccess(
-          data.failed > 0
-            ? `Sent to ${data.sent} recipients (${data.failed} failed).`
-            : `Email sent to ${data.sent} recipient${data.sent !== 1 ? "s" : ""}.`,
-        );
-      }
-    } catch {
-      setError("Failed to reach server. Try again.");
-    } finally {
-      setIsSending(false);
+    const result = await scheduleSubmit({
+      type: "course-promo",
+      basis: form.basis,
+      subject: form.subject,
+      message: form.message,
+      link: form.link,
+      recipients: recipientList,
+      templateProps: {
+        courseTitle: form.courseTitle,
+        originalPrice: form.originalPrice,
+        discountPrice: form.discountPrice,
+        deadline: form.deadline,
+        bannerImage: form.bannerImage,
+      },
+    });
+
+    if (result.ok) {
+      setSuccess(result.message);
+    } else {
+      setError(result.message);
     }
   };
 
@@ -356,8 +357,8 @@ export default function CoursePromoForm() {
           type="button"
           size="lg"
           onClick={handleSendClick}
-          disabled={isSending}>
-          {isSending ? (
+          disabled={isSending || isScheduling}>
+          {isSending || isScheduling ? (
             <>
               <LoaderCircle className="animate-spin h-4 w-4 mr-2" />
               Sending…
