@@ -5,51 +5,46 @@ import { neonConfig } from "@neondatabase/serverless";
 neonConfig.webSocketConstructor = globalThis.WebSocket;
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prismaClient: PrismaClient | undefined;
 };
 
-function createPrismaClient() {
+function getPrismaClient(): PrismaClient {
+  if (globalForPrisma.prismaClient) {
+    return globalForPrisma.prismaClient;
+  }
+
   const connectionString = process.env.DATABASE_URL;
-
-  // During build time, DATABASE_URL might not be available
-  // In this case, we return a lazy-loading client that will work at runtime
   if (!connectionString) {
-    console.warn(
-      "DATABASE_URL not available during build. The app will use database at runtime.",
+    throw new Error(
+      "DATABASE_URL environment variable is not set. Please ensure DATABASE_URL is configured in your .env or Vercel project settings.",
     );
-
-    // Create a lazy Prisma client that will work when DATABASE_URL is available
-    const lazyDb = new Proxy(
-      {},
-      {
-        get: () => {
-          throw new Error(
-            "DATABASE_URL environment variable is not set. " +
-              "Make sure your .env file is loaded with DATABASE_URL.",
-          );
-        },
-      },
-    ) as any;
-
-    return lazyDb;
   }
 
   const adapter = new PrismaNeon({ connectionString });
-
-  return new PrismaClient({
+  const client = new PrismaClient({
     adapter,
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
         : ["error"],
   });
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prismaClient = client;
+  }
+
+  return client;
 }
 
-export const db = createPrismaClient();
+// Export a proxy so importing `prisma` at build time doesn't throw if DATABASE_URL is not yet loaded,
+// but accesses at runtime dynamically resolve to the connected client.
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient() as any;
+    const value = client[prop];
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
+
 export const prisma = db;
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
-}
-
 export default db;
