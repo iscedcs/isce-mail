@@ -11,6 +11,8 @@ export type EmailEventType =
   | "email.delivered"
   | "email.delivery_delayed"
   | "email.bounced"
+  | "email.suppressed"
+  | "email.failed"
   | "email.complained"
   | "email.opened"
   | "email.clicked";
@@ -39,7 +41,11 @@ const FILE = path.join(DATA_DIR, "events.json");
 const MAX_EVENTS = 1000;
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (err) {
+    console.warn("[email-events] Could not create data dir:", err);
+  }
 }
 
 function readAll(): EmailEvent[] {
@@ -53,12 +59,16 @@ function readAll(): EmailEvent[] {
 }
 
 function writeAll(events: EmailEvent[]): void {
-  ensureDataDir();
-  fs.writeFileSync(
-    FILE,
-    JSON.stringify(events.slice(0, MAX_EVENTS), null, 2),
-    "utf-8",
-  );
+  try {
+    ensureDataDir();
+    fs.writeFileSync(
+      FILE,
+      JSON.stringify(events.slice(0, MAX_EVENTS), null, 2),
+      "utf-8",
+    );
+  } catch (err) {
+    console.error("[email-events] Failed to write events to disk:", err);
+  }
 }
 
 // ---------------------------------------------------------------------------

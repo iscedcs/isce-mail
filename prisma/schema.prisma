@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Contact {
+  id             String              @id @default(cuid())
+  email          String              @unique
+  firstName      String?
+  status         String              @default("active") // "active" | "bounced" | "suppressed" | "unsubscribed"
+  bounceReason   String?
+  totalSent      Int                 @default(0)
+  totalDelivered Int                 @default(0)
+  totalOpened    Int                 @default(0)
+  totalClicked   Int                 @default(0)
+  lastSentAt     DateTime?
+  lastEngagedAt  DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  recipients     CampaignRecipient[]
+
+  @@index([status])
+}
+
+model Campaign {
+  id              String              @id @default(cuid())
+  type            String // "newsletter", "welcome", "announcement", etc.
+  basis           String // "ISCE" | "PalmTechniq"
+  subject         String
+  message         String              @db.Text
+  link            String?
+  templateProps   Json?
+  status          String              @default("draft") // "draft" | "sending" | "completed" | "scheduled" | "cancelled"
+  totalRecipients Int                 @default(0)
+  sentCount       Int                 @default(0)
+  deliveredCount  Int                 @default(0)
+  openedCount     Int                 @default(0)
+  clickedCount    Int                 @default(0)
+  bouncedCount    Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  recipients      CampaignRecipient[]
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model CampaignRecipient {
+  id            String    @id @default(cuid())
+  campaignId    String
+  campaign      Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  email         String
+  firstName     String?
+  batchNumber   Int       @default(1) // 1 (1-100), 2 (101-200), 3 (201-235)
+  scheduledFor  DateTime? // Timestamp for scheduled batch delivery
+  status        String    @default("pending") // "pending" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "suppressed"
+  resendEmailId String?
+  bounceReason  String?
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+  bouncedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([campaignId, email])
+  @@index([campaignId, batchNumber])
+  @@index([resendEmailId])
+  @@index([status])
+}
+
+model EmailEvent {
+  id             String   @id @default(cuid())
+  campaignId     String?
+  resendEmailId  String?
+  recipientEmail String
+  eventType      String // "email.delivered", "email.opened", etc.
+  bounceReason   String?
+  createdAt      DateTime @default(now())
+
+  @@index([resendEmailId])
+  @@index([campaignId])
+}

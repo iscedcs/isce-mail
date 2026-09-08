@@ -47,6 +47,8 @@ const STATUS_COLOR: Record<string, string> = {
 const EVENT_COLOR: Record<string, string> = {
   "email.delivered": "bg-green-100 text-green-800",
   "email.bounced": "bg-red-100 text-red-800",
+  "email.suppressed": "bg-red-100 text-red-800",
+  "email.failed": "bg-red-100 text-red-800",
   "email.complained": "bg-orange-100 text-orange-800",
   "email.delivery_delayed": "bg-yellow-100 text-yellow-800",
   "email.opened": "bg-blue-100 text-blue-800",
@@ -98,6 +100,8 @@ export default function DashboardPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [events, setEvents] = useState<EmailEvent[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState<number | "all">("all");
+  const [dispatchingBatch, setDispatchingBatch] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(() => {
@@ -123,6 +127,7 @@ export default function DashboardPage() {
 
   const openAudience = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
+    setSelectedBatch("all");
     setTab("audience");
   };
 
@@ -131,9 +136,35 @@ export default function DashboardPage() {
     fetchAll();
   };
 
+  const handleDispatchBatch = async (campaignId: string, batchNumber: number) => {
+    setDispatchingBatch(batchNumber);
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}/dispatch-batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ batchNumber }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        fetchAll();
+        const updatedRes = await fetch(`/api/campaigns/${campaignId}`);
+        if (updatedRes.ok) {
+          const updated = await updatedRes.json();
+          setSelectedCampaign(updated);
+        }
+      } else {
+        alert(data.error || "Failed to dispatch batch");
+      }
+    } catch {
+      alert("Network error while dispatching batch.");
+    } finally {
+      setDispatchingBatch(null);
+    }
+  };
+
   const scheduledCampaigns = campaigns.filter((c) => c.status === "scheduled");
   const sentCampaigns = campaigns.filter(
-    (c) => c.status === "sent" || c.status === "sending" || c.status === "failed",
+    (c) => c.status === "sent" || c.status === "sending" || c.status === "completed" || c.status === "failed",
   );
 
   return (
@@ -479,74 +510,199 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Recipient table */}
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Delivered</TableHead>
-                        <TableHead>Opened</TableHead>
-                        <TableHead>Clicked</TableHead>
-                        <TableHead>Bounced</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedCampaign.recipients.map((r, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-mono text-xs">{r.email}</TableCell>
-                          <TableCell className="text-sm">{r.firstname || ""}</TableCell>
-                          <TableCell>
-                            {r.events.delivered ? (
-                              <span className="text-xs text-green-700 font-medium flex items-center gap-1">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                {new Date(r.events.delivered).toLocaleTimeString()}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-gray-300"></span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {r.events.opened ? (
-                              <span className="text-xs text-blue-700 font-medium flex items-center gap-1">
-                                <Eye className="h-3.5 w-3.5" />
-                                {new Date(r.events.opened).toLocaleTimeString()}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-gray-300"></span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {r.events.clicked ? (
-                              <span className="text-xs text-purple-700 font-medium flex items-center gap-1">
-                                <MousePointerClick className="h-3.5 w-3.5" />
-                                {new Date(r.events.clicked).toLocaleTimeString()}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-gray-300"></span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {r.events.bounced ? (
-                              <div>
-                                <span className="text-xs text-red-700 font-medium flex items-center gap-1">
-                                  <XCircle className="h-3.5 w-3.5" />
-                                  {new Date(r.events.bounced).toLocaleTimeString()}
+                  {/* Batch Segment Bar */}
+                  {selectedCampaign.batches && selectedCampaign.batches.length > 1 && (
+                    <div className="bg-purple-50/70 border border-purple-100 rounded-xl p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="text-sm font-semibold text-purple-900 flex items-center gap-1.5">
+                            <CalendarClock className="h-4 w-4 text-purple-600" />
+                            Smart Daily Batches (100 Emails / Day Quota)
+                          </h3>
+                          <p className="text-xs text-purple-700">
+                            Split across {selectedCampaign.batches.length} days to protect your Resend daily limit.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setSelectedBatch("all")}
+                            className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
+                              selectedBatch === "all"
+                                ? "bg-purple-600 text-white shadow-sm"
+                                : "bg-white text-purple-700 border border-purple-200 hover:bg-purple-50"
+                            }`}
+                          >
+                            All ({selectedCampaign.recipients.length})
+                          </button>
+                          {selectedCampaign.batches.map((b) => (
+                            <button
+                              key={b.batchNumber}
+                              onClick={() => setSelectedBatch(b.batchNumber)}
+                              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
+                                selectedBatch === b.batchNumber
+                                  ? "bg-purple-600 text-white shadow-sm"
+                                  : "bg-white text-purple-700 border border-purple-200 hover:bg-purple-50"
+                              }`}
+                            >
+                              Batch {b.batchNumber} ({b.count})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Batches Overview Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {selectedCampaign.batches.map((b) => {
+                          const isSent = b.status === "sent";
+                          const isPending = b.status === "pending" || b.status === "scheduled";
+                          return (
+                            <div
+                              key={b.batchNumber}
+                              className={`p-3 rounded-lg border bg-white flex flex-col justify-between ${
+                                selectedBatch === b.batchNumber ? "ring-2 ring-purple-500" : ""
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="font-semibold text-xs text-gray-900">
+                                  Batch #{b.batchNumber} ({b.count} recipients)
                                 </span>
-                                {r.events.bounceReason && (
-                                  <p className="text-[11px] text-red-600 font-medium mt-0.5 max-w-[180px]">
-                                    {r.events.bounceReason}
-                                  </p>
+                                <Badge
+                                  variant={isSent ? "secondary" : "outline"}
+                                  className={isSent ? "bg-green-100 text-green-800" : "bg-yellow-50 text-yellow-800 border-yellow-200"}
+                                >
+                                  {isSent ? "Sent" : b.status === "sending" ? "Sending..." : "Queued"}
+                                </Badge>
+                              </div>
+                              <div className="text-[11px] text-gray-500 mb-2">
+                                {isSent ? (
+                                  <span>Sent: {fmt(b.sentAt || selectedCampaign.sentAt || selectedCampaign.createdAt)}</span>
+                                ) : (
+                                  <span>Scheduled: {fmt(b.scheduledFor || undefined)}</span>
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-xs text-gray-300">—</span>
+                              {isPending && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full text-xs h-7 border-purple-300 text-purple-700 hover:bg-purple-50"
+                                  disabled={dispatchingBatch === b.batchNumber}
+                                  onClick={() => handleDispatchBatch(selectedCampaign.id, b.batchNumber)}
+                                >
+                                  {dispatchingBatch === b.batchNumber ? (
+                                    <span className="flex items-center gap-1">
+                                      <LoaderCircle className="animate-spin h-3 w-3" />
+                                      Dispatching...
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      <Send className="h-3 w-3" />
+                                      Send Batch {b.batchNumber} Now
+                                    </span>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recipient table */}
+                  {(() => {
+                    const visibleRecipients = selectedCampaign.recipients.filter(
+                      (r) => selectedBatch === "all" || (r.batchNumber || 1) === selectedBatch,
+                    );
+                    return (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Name</TableHead>
+                            {selectedCampaign.batches && selectedCampaign.batches.length > 1 && (
+                              <TableHead>Batch</TableHead>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Delivered</TableHead>
+                            <TableHead>Opened</TableHead>
+                            <TableHead>Clicked</TableHead>
+                            <TableHead>Bounced</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {visibleRecipients.map((r, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-mono text-xs">{r.email}</TableCell>
+                              <TableCell className="text-sm">{r.firstname || ""}</TableCell>
+                              {selectedCampaign.batches && selectedCampaign.batches.length > 1 && (
+                                <TableCell>
+                                  <Badge variant="outline" className="text-[10px] font-semibold">
+                                    Batch #{r.batchNumber || 1}
+                                  </Badge>
+                                </TableCell>
+                              )}
+                              <TableCell>
+                                <span
+                                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                    STATUS_COLOR[r.status || (r.events.delivered ? "delivered" : "sent")] ?? "bg-gray-100"
+                                  }`}
+                                >
+                                  {r.status || (r.events.delivered ? "delivered" : "sent")}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {r.events.delivered ? (
+                                  <span className="text-xs text-green-700 font-medium flex items-center gap-1">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    {new Date(r.events.delivered).toLocaleTimeString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {r.events.opened ? (
+                                  <span className="text-xs text-blue-700 font-medium flex items-center gap-1">
+                                    <Eye className="h-3.5 w-3.5" />
+                                    {new Date(r.events.opened).toLocaleTimeString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {r.events.clicked ? (
+                                  <span className="text-xs text-purple-700 font-medium flex items-center gap-1">
+                                    <MousePointerClick className="h-3.5 w-3.5" />
+                                    {new Date(r.events.clicked).toLocaleTimeString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {r.events.bounced ? (
+                                  <div>
+                                    <span className="text-xs text-red-700 font-medium flex items-center gap-1">
+                                      <XCircle className="h-3.5 w-3.5" />
+                                      {new Date(r.events.bounced).toLocaleTimeString()}
+                                    </span>
+                                    {r.events.bounceReason && (
+                                      <p className="text-[11px] text-red-600 font-medium mt-0.5 max-w-[180px]">
+                                        {r.events.bounceReason}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    );
+                  })()}
                 </>
               )}
             </div>

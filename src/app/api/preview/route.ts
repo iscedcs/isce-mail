@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { render } from "@react-email/render";
 
+export const dynamic = "force-dynamic";
+
 // PT templates
 import PtWelcomeMail from "../../../../emails/templates/palmtechniq/welcome";
 import PtNewsletterMail from "../../../../emails/templates/palmtechniq/newsletter";
