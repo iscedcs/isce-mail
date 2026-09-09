@@ -162,7 +162,63 @@ export default function DashboardPage() {
     }
   };
 
-  const scheduledCampaigns = campaigns.filter((c) => c.status === "scheduled");
+  interface ScheduledItem {
+    id: string;
+    campaignId: string;
+    campaign: Campaign;
+    isBatch: boolean;
+    batchNumber?: number;
+    batchCount?: number;
+    totalBatches?: number;
+    recipientCount: number;
+    scheduledFor: string | null;
+    subject: string;
+    type: string;
+    basis: string;
+  }
+
+  // Compute all scheduled dispatches: both future scheduled campaigns and upcoming scheduled batches
+  const scheduledItems: ScheduledItem[] = [];
+  for (const c of campaigns) {
+    if (c.batches && c.batches.length > 0) {
+      const pendingBatches = c.batches.filter((b: any) => b.status === "scheduled");
+      for (const b of pendingBatches) {
+        scheduledItems.push({
+          id: `${c.id}-batch-${b.batchNumber}`,
+          campaignId: c.id,
+          campaign: c,
+          isBatch: true,
+          batchNumber: b.batchNumber,
+          batchCount: b.count,
+          totalBatches: c.batches.length,
+          recipientCount: b.count,
+          scheduledFor: b.scheduledFor || c.scheduledFor || null,
+          subject: c.subject,
+          type: c.type,
+          basis: c.basis,
+        });
+      }
+    } else if (c.status === "scheduled") {
+      scheduledItems.push({
+        id: c.id,
+        campaignId: c.id,
+        campaign: c,
+        isBatch: false,
+        recipientCount: c.recipients?.length || c.stats?.total || 0,
+        scheduledFor: c.scheduledFor || null,
+        subject: c.subject,
+        type: c.type,
+        basis: c.basis,
+      });
+    }
+  }
+
+  scheduledItems.sort((a, b) => {
+    const timeA = a.scheduledFor ? new Date(a.scheduledFor).getTime() : 0;
+    const timeB = b.scheduledFor ? new Date(b.scheduledFor).getTime() : 0;
+    return timeA - timeB;
+  });
+
   const sentCampaigns = campaigns.filter(
     (c) => c.status === "sent" || c.status === "sending" || c.status === "completed" || c.status === "failed",
   );
@@ -200,7 +256,7 @@ export default function DashboardPage() {
           },
           {
             label: "Scheduled",
-            value: scheduledCampaigns.length,
+            value: scheduledItems.length,
             icon: <Clock className="h-5 w-5 text-purple-500" />,
             bg: "bg-purple-50",
           },
@@ -235,7 +291,7 @@ export default function DashboardPage() {
         {(
           [
             { id: "campaigns", label: "Campaigns" },
-            { id: "scheduled", label: `Scheduled (${scheduledCampaigns.length})` },
+            { id: "scheduled", label: `Scheduled (${scheduledItems.length})` },
             { id: "audience", label: "Audience Detail" },
             { id: "events", label: "Delivery Events" },
             { id: "jobs", label: "Jobs" },
@@ -367,9 +423,9 @@ export default function DashboardPage() {
           {/* --- SCHEDULED TAB --- */}
           {tab === "scheduled" && (
             <div className="space-y-3">
-              {scheduledCampaigns.length === 0 ? (
+              {scheduledItems.length === 0 ? (
                 <p className="text-gray-400 text-sm py-12 text-center">
-                  No scheduled campaigns. Choose a{" "}
+                  No scheduled campaigns or queued batches. Choose a{" "}
                   <a href="/" className="text-indigo-600 underline">
                     template
                   </a>{" "}
@@ -382,43 +438,98 @@ export default function DashboardPage() {
                       <TableHead>Type</TableHead>
                       <TableHead>Brand</TableHead>
                       <TableHead>Subject</TableHead>
+                      <TableHead>Dispatch Plan</TableHead>
                       <TableHead className="text-right">Recipients</TableHead>
                       <TableHead>Scheduled For</TableHead>
-                      <TableHead></TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {scheduledCampaigns.map((c) => (
-                      <TableRow key={c.id}>
+                    {scheduledItems.map((item) => (
+                      <TableRow key={item.id} className="hover:bg-gray-50">
                         <TableCell className="capitalize font-medium text-sm">
-                          {c.type}
+                          {item.type}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={c.basis === "PalmTechniq" ? "default" : "secondary"}>
-                            {c.basis}
+                          <Badge variant={item.basis === "PalmTechniq" ? "default" : "secondary"}>
+                            {item.basis}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-sm">
-                          {c.subject}
+                        <TableCell className="max-w-[200px] truncate text-sm font-medium text-gray-900">
+                          {item.subject}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm">
-                          {c.recipients.length}
+                        <TableCell>
+                          {item.isBatch ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+                              <CalendarClock className="w-3 h-3 text-purple-600" />
+                              Batch #{item.batchNumber} of {item.totalBatches}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                              Full Campaign
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm font-semibold">
+                          {item.recipientCount}
                         </TableCell>
                         <TableCell className="text-sm font-medium text-purple-700 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             <Clock className="h-3.5 w-3.5" />
-                            {fmt(c.scheduledFor)}
+                            {fmt(item.scheduledFor || undefined)}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => cancelCampaign(c.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" />
-                            Cancel
-                          </Button>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {item.isBatch && item.batchNumber ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-purple-200 text-purple-700 hover:bg-purple-50 text-xs font-semibold"
+                                disabled={dispatchingBatch === item.batchNumber}
+                                onClick={() => handleDispatchBatch(item.campaignId, item.batchNumber!)}
+                              >
+                                {dispatchingBatch === item.batchNumber ? (
+                                  <>
+                                    <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1" />
+                                    Dispatching...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="h-3.5 w-3.5 mr-1" />
+                                    Send Batch {item.batchNumber} Now
+                                  </>
+                                )}
+                              </Button>
+                            ) : null}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs font-medium"
+                              onClick={() => {
+                                setSelectedCampaign(item.campaign);
+                                if (item.isBatch && item.batchNumber) {
+                                  setSelectedBatch(item.batchNumber);
+                                } else {
+                                  setSelectedBatch("all");
+                                }
+                                setTab("audience");
+                              }}
+                            >
+                              View Audience
+                            </Button>
+                            {!item.isBatch && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => cancelCampaign(item.campaignId)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                Cancel
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendBulkEmailTracked } from "@/lib/mail-action/newsletter/mail";
 import { parseEmailString, BatchRecipient } from "@/lib/mail-action/shared";
 import { logSend } from "@/lib/send-history";
-import { createCampaign, attachResendIds, updateCampaign } from "@/lib/campaigns";
-import type { IBasis } from "@/lib/mail-action/newsletter/mail";
+import { createCampaignWithBatches } from "@/lib/campaign-db";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -34,53 +32,33 @@ export async function POST(req: NextRequest) {
   if (!body.message) return NextResponse.json({ error: "Message is required." }, { status: 400 });
 
   try {
-    let campaignId = body.campaignId;
-    if (!campaignId) {
-      const campaign = createCampaign({
-        type: "newsletter",
-        basis: body.basis,
-        subject: body.subject,
-        message: body.message ?? "",
-        link: body.link,
-        status: "sending",
-        recipients: recipients.map((rec) => ({
-          email: rec.email,
-          firstname: rec.name ?? "",
-          url: rec.url ?? "",
-          events: {},
-        })),
-      });
-      campaignId = campaign.id;
-    }
-
-    const result = await sendBulkEmailTracked(recipients, body.subject, body.basis as IBasis, body.message, body.image);
-
-    if (campaignId) {
-      attachResendIds(campaignId, result.ids ?? []);
-      updateCampaign(campaignId, {
-        status: "sent",
-        sentAt: new Date().toISOString(),
-        stats: {
-          total: recipients.length,
-          sent: result.sent,
-          failed: result.failed,
-          delivered: 0,
-          opened: 0,
-          clicked: 0,
-          bounced: 0,
-          complained: 0,
-        },
-      });
-    }
+    const result = await createCampaignWithBatches({
+      type: "newsletter",
+      basis: body.basis,
+      subject: body.subject,
+      message: body.message ?? "",
+      link: body.link,
+      recipients,
+      templateProps: {
+        image: body.image,
+      },
+    });
 
     logSend({
       type: "newsletter",
       basis: body.basis,
       subject: body.subject,
-      recipientCount: result.sent,
+      recipientCount: result.batch1SentCount,
     });
 
-    return NextResponse.json({ ...result, campaignId });
+    return NextResponse.json({
+      sent: result.batch1SentCount,
+      failed: 0,
+      campaignId: result.campaignId,
+      batches: result.batches,
+      totalTarget: result.totalTarget,
+      excludedCount: result.excludedCount,
+    });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Send failed." },
