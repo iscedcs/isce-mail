@@ -235,6 +235,11 @@ export function recordEvent(
         campaign.stats[eventType] = (campaign.stats[eventType] ?? 0) + 1;
         dirty = true;
       }
+      if (eventType === "clicked" && !recipient.events["opened"]) {
+        recipient.events["opened"] = now;
+        campaign.stats["opened"] = (campaign.stats["opened"] ?? 0) + 1;
+        dirty = true;
+      }
       break;
     }
   }

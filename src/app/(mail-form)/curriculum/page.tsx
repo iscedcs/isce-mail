@@ -89,34 +89,30 @@ export default function CurriculumForm() {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
-    setIsSending(true);
 
-    const payload = {
-      ...form,
-      recipients: recipients.length ? recipients : undefined,
-    };
+    const recipientList = recipients.length
+      ? recipients
+      : form.emails
+          .split(",")
+          .filter(Boolean)
+          .map((e) => ({ email: e.trim(), name: "" }));
 
-    try {
-      const res = await fetch("/api/send/curriculum", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Send failed.");
-      } else {
-        setSuccess(
-          data.failed > 0
-            ? `Sent to ${data.sent} recipients (${data.failed} failed).`
-            : `Email sent to ${data.sent} recipient${data.sent !== 1 ? "s" : ""}.`,
-        );
-      }
-    } catch {
-      setError("Failed to reach server. Try again.");
-    } finally {
-      setIsSending(false);
-    }
+    const result = await scheduleSubmit({
+      type: "curriculum",
+      basis: form.basis,
+      subject: form.subject,
+      message: form.message,
+      link: form.link,
+      recipients: recipientList,
+      templateProps: {
+        courseName: form.courseName,
+        pdfUrl: form.pdfUrl,
+        bannerImage: form.bannerImage,
+      },
+    });
+
+    if (result.ok) setSuccess(result.message);
+    else setError(result.message);
   };
 
   const handleSchedule = async (scheduledFor: string) => {

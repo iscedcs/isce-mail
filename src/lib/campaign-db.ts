@@ -175,20 +175,15 @@ export async function createCampaignWithBatches(
     }
   }
 
-  // 1. Sync & Upsert Contacts into Prisma
-  for (const r of rawList) {
-    await prisma.contact.upsert({
-      where: { email: r.email },
-      update: {
-        firstName: r.name || undefined,
-      },
-      create: {
-        email: r.email,
-        firstName: r.name || undefined,
-        status: "active",
-      },
-    });
-  }
+  // 1. Bulk Upsert Contacts into Prisma
+  await prisma.contact.createMany({
+    data: rawList.map((r) => ({
+      email: r.email,
+      firstName: r.name || null,
+      status: "active",
+    })),
+    skipDuplicates: true,
+  });
 
   // Query suppressed or bounced contacts to protect user's daily quota
   const badContacts = await prisma.contact.findMany({
@@ -252,21 +247,24 @@ export async function createCampaignWithBatches(
 
   const campaignId = campaign.id;
 
-  // 4. Save all campaign recipients tagged with their batchNumber
+  // 4. Bulk save all campaign recipients tagged with their batchNumber
+  const recipientRecords = [];
   for (const b of batches) {
     for (const r of b.recipients) {
-      await prisma.campaignRecipient.create({
-        data: {
-          campaignId,
-          email: r.email,
-          firstName: r.name || null,
-          batchNumber: b.batchNumber,
-          scheduledFor: b.scheduledFor ? new Date(b.scheduledFor) : null,
-          status: b.batchNumber === 1 && !isFutureScheduled ? "sending" : "pending",
-        },
+      recipientRecords.push({
+        campaignId,
+        email: r.email,
+        firstName: r.name || null,
+        batchNumber: b.batchNumber,
+        scheduledFor: b.scheduledFor ? new Date(b.scheduledFor) : null,
+        status: b.batchNumber === 1 && !isFutureScheduled ? "sending" : "pending",
       });
     }
   }
+
+  await prisma.campaignRecipient.createMany({
+    data: recipientRecords,
+  });
 
   // 5. If not future scheduled, immediately dispatch Batch 1!
   let batch1SentCount = 0;
@@ -286,26 +284,31 @@ export async function createCampaignWithBatches(
     batch1.sentAt = new Date().toISOString();
 
     const idMap = new Map(dispatchResult.ids.map((item) => [item.email.toLowerCase(), item.resendEmailId]));
+    const batch1Emails = batch1.recipients.map((r) => r.email.toLowerCase());
 
-    for (const r of batch1.recipients) {
-      const resendId = idMap.get(r.email.toLowerCase()) || null;
-      await prisma.campaignRecipient.updateMany({
-        where: { campaignId, email: r.email },
-        data: {
-          status: "sent",
-          sentAt: new Date(),
-          resendEmailId: resendId,
-        },
-      });
+    // Update recipients with status & resend IDs in parallel
+    await Promise.all(
+      batch1.recipients.map((r) => {
+        const resendId = idMap.get(r.email.toLowerCase()) || null;
+        return prisma.campaignRecipient.updateMany({
+          where: { campaignId, email: r.email },
+          data: {
+            status: "sent",
+            sentAt: new Date(),
+            resendEmailId: resendId,
+          },
+        });
+      }),
+    );
 
-      await prisma.contact.update({
-        where: { email: r.email },
-        data: {
-          totalSent: { increment: 1 },
-          lastSentAt: new Date(),
-        },
-      });
-    }
+    // Update contacts totalSent in bulk
+    await prisma.contact.updateMany({
+      where: { email: { in: batch1Emails } },
+      data: {
+        totalSent: { increment: 1 },
+        lastSentAt: new Date(),
+      },
+    });
 
     const allSentNow = batches.length === 1;
     await prisma.campaign.update({
@@ -353,7 +356,7 @@ export async function listCampaignsFromDb() {
     const batches = Array.from(batchMap.entries()).map(([batchNumber, recs]) => ({
       batchNumber,
       count: recs.length,
-      status: recs.every((r) => r.status === "sent" || r.status === "delivered" || r.status === "opened")
+      status: recs.every((r) => ["sent", "delivered", "opened", "clicked", "bounced"].includes(r.status))
         ? "sent"
         : recs.some((r) => r.status === "sending")
           ? "sending"
@@ -513,7 +516,7 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
   const remaining = await prisma.campaignRecipient.count({
     where: {
       campaignId,
-      status: { notIn: ["sent", "delivered", "opened", "clicked"] },
+      status: { notIn: ["sent", "delivered", "opened", "clicked", "bounced"] },
     },
   });
 
@@ -591,21 +594,27 @@ export async function recordWebhookEventInDb(params: {
         },
       });
     } else if (eventType === "email.clicked") {
+      const wasAlreadyOpened = !!matchedRecipient.openedAt;
       await prisma.campaignRecipient.update({
         where: { id: matchedRecipient.id },
         data: {
           clickedAt: matchedRecipient.clickedAt ? undefined : now,
+          openedAt: wasAlreadyOpened ? undefined : now,
           status: "clicked",
         },
       });
       await prisma.campaign.update({
         where: { id: matchedRecipient.campaignId },
-        data: { clickedCount: { increment: 1 } },
+        data: {
+          clickedCount: { increment: 1 },
+          ...(wasAlreadyOpened ? {} : { openedCount: { increment: 1 } }),
+        },
       });
       await prisma.contact.update({
         where: { email: matchedRecipient.email },
         data: {
           totalClicked: { increment: 1 },
+          ...(wasAlreadyOpened ? {} : { totalOpened: { increment: 1 } }),
           lastEngagedAt: now,
         },
       });
