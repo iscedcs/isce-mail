@@ -23,20 +23,30 @@ const sendFunctions: Record<string, () => Promise<any>> = {
   curriculum: () => import("@/lib/mail-action/curriculum/mail").then((m) => m.sendBulkEmailTracked),
 };
 
+let isTickerRunning = false;
+
 export async function checkAndRunScheduledCampaigns(): Promise<{
   dispatched: number;
   skipped: number;
 }> {
-  const now = new Date();
-  const campaigns = listCampaigns();
-  const due = campaigns.filter(
-    (c) =>
-      c.status === "scheduled" &&
-      c.scheduledFor &&
-      new Date(c.scheduledFor) <= now,
-  );
+  if (isTickerRunning) {
+    console.log("[scheduler] Previous tick is still running. Skipping concurrent run.");
+    return { dispatched: 0, skipped: 0 };
+  }
 
-  let dispatched = 0;
+  isTickerRunning = true;
+
+  try {
+    const now = new Date();
+    const campaigns = listCampaigns();
+    const due = campaigns.filter(
+      (c) =>
+        c.status === "scheduled" &&
+        c.scheduledFor &&
+        new Date(c.scheduledFor) <= now,
+    );
+
+    let dispatched = 0;
 
   for (const campaign of due) {
     // Mark as sending immediately to prevent double-dispatch
@@ -201,5 +211,8 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
   }
 
   return { dispatched, skipped: due.length - dispatched };
+} finally {
+  isTickerRunning = false;
+}
 }
 
