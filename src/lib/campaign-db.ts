@@ -453,6 +453,7 @@ export async function getCampaignBatchesFromDb(campaignId: string) {
 
 /**
  * Dispatches a specific queued batch (e.g. Batch 2 or Batch 3) via Resend.
+ * Uses atomic status claiming to prevent duplicate sends across concurrent ticks/workers.
  */
 export async function dispatchScheduledBatch(campaignId: string, batchNumber: number) {
   const campaign = await prisma.campaign.findUnique({
@@ -461,48 +462,88 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
 
   if (!campaign) throw new Error("Campaign not found");
 
-  const pendingRecipients = await prisma.campaignRecipient.findMany({
+  // 1. ATOMIC CLAIM: Flip status of pending/scheduled recipients to "sending".
+  // This is an atomic update at the database level. If another tick or worker tries to
+  // dispatch this batch at the same time, its claimResult.count will be 0 and it will exit.
+  const claimResult = await prisma.campaignRecipient.updateMany({
     where: {
       campaignId,
       batchNumber,
       status: { in: ["pending", "scheduled"] },
     },
+    data: {
+      status: "sending",
+    },
   });
 
-  if (pendingRecipients.length === 0) {
-    return { sent: 0, message: "No pending recipients for this batch." };
+  if (claimResult.count === 0) {
+    return { sent: 0, message: "No pending recipients or batch already in progress." };
   }
 
-  const result = await dispatchEmail(
-    campaign.type,
-    campaign.basis as IBasis,
-    campaign.subject,
-    campaign.message,
-    campaign.link || undefined,
-    (campaign.templateProps as Record<string, any>) || {},
-    pendingRecipients.map((r: any) => ({ email: r.email, firstname: r.firstName || undefined })),
-  );
+  // 2. Fetch only the recipients we successfully claimed
+  const claimedRecipients = await prisma.campaignRecipient.findMany({
+    where: {
+      campaignId,
+      batchNumber,
+      status: "sending",
+      resendEmailId: null,
+    },
+  });
+
+  if (claimedRecipients.length === 0) {
+    return { sent: 0, message: "No un-dispatched recipients found for this batch." };
+  }
+
+  let result: { sent: number; failed: number; ids: { resendEmailId: string; email: string }[] };
+
+  try {
+    result = await dispatchEmail(
+      campaign.type,
+      campaign.basis as IBasis,
+      campaign.subject,
+      campaign.message,
+      campaign.link || undefined,
+      (campaign.templateProps as Record<string, any>) || {},
+      claimedRecipients.map((r: any) => ({ email: r.email, firstname: r.firstName || undefined })),
+    );
+  } catch (err) {
+    // If dispatch fails completely, revert claimed recipients back to "scheduled" so it can be retried
+    await prisma.campaignRecipient.updateMany({
+      where: {
+        campaignId,
+        batchNumber,
+        status: "sending",
+        resendEmailId: null,
+      },
+      data: {
+        status: "scheduled",
+      },
+    });
+    throw err;
+  }
 
   const idMap = new Map(result.ids.map((item) => [item.email.toLowerCase(), item.resendEmailId]));
 
-  for (const r of pendingRecipients) {
+  for (const r of claimedRecipients) {
     const resendId = idMap.get(r.email.toLowerCase()) || null;
     await prisma.campaignRecipient.updateMany({
       where: { campaignId, email: r.email },
       data: {
-        status: "sent",
-        sentAt: new Date(),
+        status: resendId ? "sent" : "scheduled", // if this individual send failed, leave as scheduled
+        sentAt: resendId ? new Date() : null,
         resendEmailId: resendId,
       },
     });
 
-    await prisma.contact.update({
-      where: { email: r.email },
-      data: {
-        totalSent: { increment: 1 },
-        lastSentAt: new Date(),
-      },
-    });
+    if (resendId) {
+      await prisma.contact.update({
+        where: { email: r.email },
+        data: {
+          totalSent: { increment: 1 },
+          lastSentAt: new Date(),
+        },
+      });
+    }
   }
 
   await prisma.campaign.update({
