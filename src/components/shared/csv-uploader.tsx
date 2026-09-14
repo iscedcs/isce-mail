@@ -11,11 +11,17 @@ export default function CSVUploader({
   handleUpload,
   onSyncedCsv,
   onSyncedRecipients,
+  productSlug = "palmtechniq",
+  productName = "PalmTechniq",
+  hasSyncUrl = true,
 }: {
   handleUpload: (e: any) => void;
   onSyncedCsv?: (emailsCsv: string) => void;
   /** Called with the full recipients array including names for personalisation. */
   onSyncedRecipients?: (recipients: RecipientItem[]) => void;
+  productSlug?: string;
+  productName?: string;
+  hasSyncUrl?: boolean;
 }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
@@ -24,15 +30,15 @@ export default function CSVUploader({
     fromCache: boolean;
   } | null>(null);
 
-  const syncPalmTechniqUsers = async (forceRefresh = false) => {
+  const syncUsers = async (forceRefresh = false) => {
     try {
       setSyncError("");
       setSyncMeta(null);
       setIsSyncing(true);
 
-      const url = forceRefresh
-        ? "/api/recipients/palmtechniq?refresh=1"
-        : "/api/recipients/palmtechniq";
+      const targetSlug = productSlug || "palmtechniq";
+      const refreshParam = forceRefresh ? "&refresh=1" : "";
+      const url = `/api/recipients/sync?product=${encodeURIComponent(targetSlug)}${refreshParam}`;
 
       const response = await fetch(url, { method: "GET" });
 
@@ -72,28 +78,37 @@ export default function CSVUploader({
     }
   };
 
+  const showSyncButton =
+    hasSyncUrl ||
+    productSlug.toLowerCase() === "palmtechniq" ||
+    productSlug.toLowerCase() === "gada";
+
   return (
     <div className="space-y-2">
       <Input type="file" accept=".csv" onChange={handleUpload} />
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => syncPalmTechniqUsers(false)}
-          disabled={isSyncing}>
-          {isSyncing ? "Syncing..." : "Sync PalmTechniq Users"}
-        </Button>
-        {syncMeta && syncMeta.fromCache && (
+      {showSyncButton && (
+        <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="ghost"
-            className="text-xs text-muted-foreground"
-            onClick={() => syncPalmTechniqUsers(true)}
-            disabled={isSyncing}>
-            Cached · Refresh
+            variant="outline"
+            onClick={() => syncUsers(false)}
+            disabled={isSyncing}
+          >
+            {isSyncing ? "Syncing..." : `Sync ${productName || "Audience"} Users`}
           </Button>
-        )}
-      </div>
+          {syncMeta && syncMeta.fromCache && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-xs text-muted-foreground"
+              onClick={() => syncUsers(true)}
+              disabled={isSyncing}
+            >
+              Cached · Refresh
+            </Button>
+          )}
+        </div>
+      )}
       {syncMeta && (
         <p className="text-xs text-muted-foreground">
           {syncMeta.total} recipients loaded

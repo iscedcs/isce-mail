@@ -2,13 +2,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  SelectValue,
-  SelectTrigger,
-  SelectItem,
-  SelectContent,
-  Select,
-} from "@/components/ui/select";
+import ProductSelect from "@/components/shared/product-select";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
@@ -188,23 +182,15 @@ export default function NewsLetterForm() {
               </Tooltip>
             </TooltipProvider>
           </Label>
-          <Select
-            defaultValue={form.basis}
-            required
-            onValueChange={(e: IBasis) => {
-              setForm({
-                ...form,
-                basis: e,
-              });
-            }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a basis" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ISCE">ISCE</SelectItem>
-              <SelectItem value="PalmTechniq">PalmTechniq</SelectItem>
-            </SelectContent>
-          </Select>
+          <ProductSelect
+            value={form.basis}
+            onValueChange={(val) => {
+              setForm((prev) => ({
+                ...prev,
+                basis: val,
+              }));
+            }}
+          />
         </div>
         <div className="space-y-2 text-[#949494] ">
           <ImageUploader
@@ -304,6 +290,7 @@ export default function NewsLetterForm() {
           </Label>
           <CSVUploader
             handleUpload={handleFileUpload}
+            productSlug={form.basis}
             onSyncedCsv={(emailsCsv) => {
               setCsvContent(emailsCsv);
               setForm((prev) => ({ ...prev, emails: emailsCsv }));

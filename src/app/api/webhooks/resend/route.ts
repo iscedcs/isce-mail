@@ -3,52 +3,89 @@ import crypto from "crypto";
 import { pushEmailEvent, EmailEventType } from "@/lib/email-events";
 import { recordEvent, findRecipientByResendId } from "@/lib/campaigns";
 import { recordWebhookEventInDb } from "@/lib/campaign-db";
+import { prisma } from "@/lib/prisma";
+import { decrypt } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 
+function verifySignatureWithSecret(
+  secret: string,
+  svixId: string,
+  svixTimestamp: string,
+  svixSignature: string,
+  rawBody: string,
+): boolean {
+  try {
+    const signingInput = `${svixId}.${svixTimestamp}.${rawBody}`;
+    const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+    const expected = crypto
+      .createHmac("sha256", secretBytes)
+      .update(signingInput)
+      .digest("base64");
+    const signatures = svixSignature.split(" ").map((s) => s.replace(/^v1,/, ""));
+    return signatures.some((sig) => sig === expected);
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Verify Resend / Standard Webhooks signature.
- * Header format: svix-id, svix-timestamp, svix-signature
- * Signed content: "{svix-id}.{svix-timestamp}.{raw body}"
- * Secret format: "whsec_<base64>"
+ * Verify Resend / Standard Webhooks signature against:
+ * 1. Global RESEND_WEBHOOK_SECRET in .env
+ * 2. Any active Product.webhookSecret stored in database
  */
 async function verifyResendSignature(
   req: NextRequest,
   rawBody: string,
 ): Promise<boolean> {
-  const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "[webhook] RESEND_WEBHOOK_SECRET not set, allowing in development mode.",
-      );
-      return true;
-    }
-    return false;
-  }
-
   const svixId = req.headers.get("svix-id");
   const svixTimestamp = req.headers.get("svix-timestamp");
   const svixSignature = req.headers.get("svix-signature");
 
   if (!svixId || !svixTimestamp || !svixSignature) return false;
 
-  // Reject events older than 24 hours to allow retries and manual replays
+  // Reject events older than 24 hours
   const ts = parseInt(svixTimestamp, 10);
   if (isNaN(ts) || Math.abs(Date.now() / 1000 - ts) > 86400) return false;
 
-  const signingInput = `${svixId}.${svixTimestamp}.${rawBody}`;
+  // 1. Check global secret from .env
+  const globalSecret = process.env.RESEND_WEBHOOK_SECRET;
+  if (globalSecret && verifySignatureWithSecret(globalSecret, svixId, svixTimestamp, svixSignature, rawBody)) {
+    return true;
+  }
 
-  // Secret is "whsec_<base64>"  strip prefix and decode
-  const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
-  const expected = crypto
-    .createHmac("sha256", secretBytes)
-    .update(signingInput)
-    .digest("base64");
+  // 2. Check product-specific secrets from database
+  try {
+    const productsWithWebhooks = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        webhookSecret: { not: null },
+      },
+      select: { webhookSecret: true },
+    });
 
-  // svix-signature may contain multiple signatures: "v1,<sig1> v1,<sig2>"
-  const signatures = svixSignature.split(" ").map((s) => s.replace(/^v1,/, ""));
-  return signatures.some((sig) => sig === expected);
+    for (const p of productsWithWebhooks) {
+      if (!p.webhookSecret) continue;
+      try {
+        const decryptedSecret = decrypt(p.webhookSecret);
+        if (verifySignatureWithSecret(decryptedSecret, svixId, svixTimestamp, svixSignature, rawBody)) {
+          return true;
+        }
+      } catch {
+        // Continue checking other products if one secret fails decryption
+      }
+    }
+  } catch (err) {
+    console.warn("[webhook] Failed checking product webhook secrets from DB:", err);
+  }
+
+  // Dev fallback
+  if (process.env.NODE_ENV === "development") {
+    console.warn("[webhook] Allowing webhook in development mode despite unverified signature.");
+    return true;
+  }
+
+  return false;
 }
 
 // Map Resend event type to campaign stat key
@@ -83,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     const type = (payload.type as string) ?? "";
 
-    // Gracefully acknowledge non-email events (contacts, domains, etc.) without failing
+    // Gracefully acknowledge non-email events (contacts, domains, etc.)
     if (!type.startsWith("email.")) {
       return NextResponse.json({ ok: true, ignored: true });
     }
@@ -127,7 +164,7 @@ export async function POST(req: NextRequest) {
           campaignId = match.campaign.id;
           recipientEmail = match.recipient.email;
 
-          // Update per-recipient event + campaign stats counter
+          // Update per-recipient event + campaign stats counter (JSON legacy store)
           const statKey = EVENT_TO_STAT[type];
           if (statKey) {
             recordEvent(emailId, statKey, bounceReason);
@@ -138,7 +175,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Push to event log with enriched fields
+    // Push to in-memory event log with enriched fields
     try {
       pushEmailEvent({
         id: (payload.id as string) ?? crypto.randomUUID(),

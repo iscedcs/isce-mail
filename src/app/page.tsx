@@ -1,19 +1,26 @@
 import Templatecard from "@/components/shared/template-card";
 import { TEMPLATECARD } from "@/lib/const";
 import Link from "next/link";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Building2 } from "lucide-react";
 import React from "react";
 
 export default function Home() {
   return (
     <div className="text-center max-w-7xl mx-auto pb-[30px] pt-6">
-      <div className="flex justify-center gap-3 mb-6">
+      <div className="flex justify-center flex-wrap gap-3 mb-6">
         <Link
           href="/history"
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-50 shadow-sm transition-all"
         >
           <BarChart3 className="w-4 h-4 text-indigo-600" />
           Campaign Dashboard & Insights
+        </Link>
+        <Link
+          href="/admin/products"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-50 shadow-sm transition-all"
+        >
+          <Building2 className="w-4 h-4 text-emerald-600" />
+          Manage Products & Brands
         </Link>
       </div>
 

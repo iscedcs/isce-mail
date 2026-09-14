@@ -1,116 +1,34 @@
 import { prisma } from "@/lib/prisma";
-import { IBasis } from "@/lib/mail-action/shared";
-
-// Lazy imports of mail modules for all 11 template types
-const sendFunctions: Record<string, () => Promise<any>> = {
-  appreciation: () => import("@/lib/mail-action/appreciation/mail").then((m) => m.sendBulkEmailTracked),
-  announcement: () => import("@/lib/mail-action/announcement/mail").then((m) => m.sendBulkEmailTracked),
-  newsletter: () => import("@/lib/mail-action/newsletter/mail").then((m) => m.sendBulkEmailTracked),
-  event: () => import("@/lib/mail-action/event/mail").then((m) => m.sendBulkEmailTracked),
-  holiday: () => import("@/lib/mail-action/holiday/mail").then((m) => m.sendBulkEmailTracked),
-  survey: () => import("@/lib/mail-action/survey/mail").then((m) => m.sendBulkEmailTracked),
-  welcome: () => import("@/lib/mail-action/welcome/mail").then((m) => m.sendBulkEmailTracked),
-  promotion: () => import("@/lib/mail-action/promotion/mail").then((m) => m.sendBulkEmailTracked),
-  "cohort-welcome": () => import("@/lib/mail-action/cohort-welcome/mail").then((m) => m.sendBulkEmailTracked),
-  "course-promo": () => import("@/lib/mail-action/course-promo/mail").then((m) => m.sendBulkEmailTracked),
-  curriculum: () => import("@/lib/mail-action/curriculum/mail").then((m) => m.sendBulkEmailTracked),
-};
+import { resolveProduct } from "@/lib/product-resolver";
+import { renderAndSendBatch } from "@/lib/email-engine";
+import type { IBasis } from "@/lib/mail-action/shared";
 
 async function dispatchEmail(
   type: string,
-  basis: IBasis,
+  basis: string,
   subject: string,
   message: string,
   link?: string,
   templateProps: Record<string, any> = {},
   recipients: { email: string; name?: string; firstname?: string }[] = [],
-): Promise<{ sent: number; failed: number; ids: { resendEmailId: string; email: string }[] }> {
-  const sendFnLoader = sendFunctions[type];
-  if (!sendFnLoader) {
-    throw new Error(`Unknown campaign template type: ${type}`);
-  }
-
-  const sendFn = await sendFnLoader();
+): Promise<{ sent: number; failed: number; ids: { resendEmailId: string; email: string }[]; errors?: string[] }> {
+  const product = await resolveProduct(basis);
   const formattedRecipients = recipients.map((r) => ({
     email: r.email.trim().toLowerCase(),
     name: r.firstname || r.name || "",
   }));
 
-  const props = templateProps || {};
+  // Build merged templateProps for the engine (link is a common prop)
+  const mergedProps = { link, ...templateProps };
 
-  switch (type) {
-    case "cohort-welcome":
-      return await sendFn(
-        formattedRecipients,
-        subject,
-        basis,
-        message,
-        props.cohortName || "Our Cohort",
-        props.startDate || new Date().toLocaleDateString(),
-        props.mentorName || "Lead Instructor",
-        props.communityLink || link || "",
-        link || "",
-        props.bannerImage,
-      );
-    case "course-promo":
-      return await sendFn(
-        formattedRecipients,
-        subject,
-        basis,
-        message,
-        props.courseTitle || subject,
-        props.originalPrice || "",
-        props.discountPrice || "",
-        props.deadline || "",
-        link || "",
-        props.bannerImage,
-      );
-    case "curriculum":
-      return await sendFn(
-        formattedRecipients,
-        subject,
-        basis,
-        message,
-        props.courseName || subject,
-        link || "",
-        props.pdfUrl,
-        props.bannerImage,
-      );
-    case "holiday":
-      return await sendFn(
-        formattedRecipients,
-        subject,
-        basis,
-        message,
-        props.image || link || "",
-      );
-    case "newsletter":
-      return await sendFn(
-        formattedRecipients,
-        subject,
-        basis,
-        message,
-        props.image || "",
-      );
-    case "promotion":
-      return await sendFn(
-        formattedRecipients,
-        subject,
-        basis,
-        message,
-        link || "",
-        props.image || "",
-      );
-    default:
-      // appreciation, announcement, event, survey, welcome
-      return await sendFn(
-        formattedRecipients,
-        subject,
-        basis,
-        message,
-        link || "",
-      );
-  }
+  return renderAndSendBatch(
+    product,
+    type,
+    formattedRecipients,
+    subject,
+    message,
+    mergedProps,
+  );
 }
 
 export interface RecipientInput {
@@ -122,7 +40,7 @@ export interface RecipientInput {
 
 export interface CreateCampaignParams {
   type: string;
-  basis: IBasis;
+  basis: string; // ProductSlug — matches Product.slug or legacy "ISCE" / "PalmTechniq"
   subject: string;
   message: string;
   link?: string;
@@ -175,6 +93,18 @@ export async function createCampaignWithBatches(
     }
   }
 
+  // 0. Resolve product (validates slug exists, loads branding/API key)
+  let resolvedProductId: string | null = null;
+  try {
+    const product = await resolveProduct(params.basis);
+    // DB-seeded products have a real cuid; legacy env-fallbacks return the slug as id
+    if (product.id !== product.slug) {
+      resolvedProductId = product.id;
+    }
+  } catch {
+    console.warn(`[campaign-db] Could not resolve product "${params.basis}" — proceeding without productId.`);
+  }
+
   // 1. Bulk Upsert Contacts into Prisma
   await prisma.contact.createMany({
     data: rawList.map((r) => ({
@@ -185,17 +115,35 @@ export async function createCampaignWithBatches(
     skipDuplicates: true,
   });
 
-  // Query suppressed or bounced contacts to protect user's daily quota
+  // Query globally bounced/suppressed contacts (hard bounces block all products)
   const badContacts = await prisma.contact.findMany({
     where: {
       email: { in: rawList.map((r) => r.email) },
-      status: { in: ["bounced", "suppressed", "unsubscribed"] },
+      status: { in: ["bounced", "suppressed"] },
     },
     select: { email: true, status: true, bounceReason: true },
   });
-
   const badEmailSet = new Set(badContacts.map((b: { email: string }) => b.email));
-  const validRecipients = rawList.filter((r) => !badEmailSet.has(r.email));
+
+  // Query product-specific unsubscribes (only if product is in DB)
+  let productUnsubscribed = new Set<string>();
+  if (resolvedProductId) {
+    try {
+      const unsubscribedStatuses = await prisma.contactProductStatus.findMany({
+        where: {
+          productId: resolvedProductId,
+          status: "unsubscribed",
+          contact: { email: { in: rawList.map((r) => r.email) } },
+        },
+        include: { contact: { select: { email: true } } },
+      });
+      productUnsubscribed = new Set(unsubscribedStatuses.map((s) => s.contact.email));
+    } catch {
+      // Non-fatal if contact status table isn't populated yet
+    }
+  }
+
+  const validRecipients = rawList.filter((r) => !badEmailSet.has(r.email) && !productUnsubscribed.has(r.email));
 
   if (validRecipients.length === 0) {
     throw new Error(
@@ -235,6 +183,7 @@ export async function createCampaignWithBatches(
     data: {
       type: params.type,
       basis: params.basis,
+      productId: resolvedProductId,
       subject: params.subject,
       message: params.message,
       link: params.link || null,
@@ -284,7 +233,7 @@ export async function createCampaignWithBatches(
     batch1.sentAt = new Date().toISOString();
 
     const idMap = new Map(dispatchResult.ids.map((item) => [item.email.toLowerCase(), item.resendEmailId]));
-    const batch1Emails = batch1.recipients.map((r) => r.email.toLowerCase());
+    const successfulEmails = dispatchResult.ids.map((item) => item.email.toLowerCase());
 
     // Update recipients with status & resend IDs in parallel
     await Promise.all(
@@ -293,31 +242,46 @@ export async function createCampaignWithBatches(
         return prisma.campaignRecipient.updateMany({
           where: { campaignId, email: r.email },
           data: {
-            status: "sent",
-            sentAt: new Date(),
+            status: resendId ? "sent" : "failed",
+            sentAt: resendId ? new Date() : null,
             resendEmailId: resendId,
           },
         });
       }),
     );
 
-    // Update contacts totalSent in bulk
-    await prisma.contact.updateMany({
-      where: { email: { in: batch1Emails } },
-      data: {
-        totalSent: { increment: 1 },
-        lastSentAt: new Date(),
-      },
-    });
+    // Update contacts totalSent in bulk ONLY for successfully sent recipients
+    if (successfulEmails.length > 0) {
+      await prisma.contact.updateMany({
+        where: { email: { in: successfulEmails } },
+        data: {
+          totalSent: { increment: 1 },
+          lastSentAt: new Date(),
+        },
+      });
+    }
 
     const allSentNow = batches.length === 1;
+    const campaignStatus = allSentNow
+      ? dispatchResult.sent > 0
+        ? "completed"
+        : "failed"
+      : "sending";
+
     await prisma.campaign.update({
       where: { id: campaignId },
       data: {
         sentCount: dispatchResult.sent,
-        status: allSentNow ? "completed" : "sending",
+        status: campaignStatus,
       },
     });
+
+    if (dispatchResult.sent === 0 && dispatchResult.failed > 0) {
+      const errDetail = dispatchResult.errors?.length
+        ? dispatchResult.errors.join("; ")
+        : "Resend failed to deliver the batch.";
+      throw new Error(`Email dispatch failed: ${errDetail}`);
+    }
   }
 
   return {
@@ -438,12 +402,24 @@ export async function getCampaignBatchesFromDb(campaignId: string) {
       batchMap.set(r.batchNumber, {
         batchNumber: r.batchNumber,
         scheduledFor: r.scheduledFor?.toISOString() || null,
-        status: r.batchNumber === 1 ? "sent" : (r.status === "sent" ? "sent" : "scheduled"),
+        status: "scheduled", // will be recalculated below after all recipients are collected
         recipients: [],
       });
     }
     batchMap.get(r.batchNumber).recipients.push(r);
   }
+
+  // Recalculate batch status from recipients (consistent with listCampaignsFromDb)
+  Array.from(batchMap.values()).forEach((batch) => {
+    const recs = batch.recipients;
+    batch.status = recs.every((r: any) =>
+      ["sent", "delivered", "opened", "clicked", "bounced"].includes(r.status),
+    )
+      ? "sent"
+      : recs.some((r: any) => r.status === "sending")
+        ? "sending"
+        : "scheduled";
+  });
 
   return {
     campaign,
@@ -462,14 +438,12 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
 
   if (!campaign) throw new Error("Campaign not found");
 
-  // 1. ATOMIC CLAIM: Flip status of pending/scheduled recipients to "sending".
-  // This is an atomic update at the database level. If another tick or worker tries to
-  // dispatch this batch at the same time, its claimResult.count will be 0 and it will exit.
   const claimResult = await prisma.campaignRecipient.updateMany({
     where: {
       campaignId,
       batchNumber,
-      status: { in: ["pending", "scheduled"] },
+      resendEmailId: null,
+      status: { notIn: ["delivered", "opened", "clicked", "bounced", "suppressed"] },
     },
     data: {
       status: "sending",
@@ -477,7 +451,7 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
   });
 
   if (claimResult.count === 0) {
-    return { sent: 0, message: "No pending recipients or batch already in progress." };
+    return { sent: 0, message: "No pending or scheduled recipients found for this batch." };
   }
 
   // 2. Fetch only the recipients we successfully claimed
@@ -494,17 +468,17 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
     return { sent: 0, message: "No un-dispatched recipients found for this batch." };
   }
 
-  let result: { sent: number; failed: number; ids: { resendEmailId: string; email: string }[] };
+  let result: { sent: number; failed: number; ids: { resendEmailId: string; email: string }[]; errors?: string[] };
 
   try {
     result = await dispatchEmail(
       campaign.type,
-      campaign.basis as IBasis,
+      campaign.basis,
       campaign.subject,
       campaign.message,
       campaign.link || undefined,
       (campaign.templateProps as Record<string, any>) || {},
-      claimedRecipients.map((r: any) => ({ email: r.email, firstname: r.firstName || undefined })),
+      claimedRecipients.map((r: any) => ({ email: r.email, name: r.firstName || undefined })),
     );
   } catch (err) {
     // If dispatch fails completely, revert claimed recipients back to "scheduled" so it can be retried
@@ -529,7 +503,7 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
     await prisma.campaignRecipient.updateMany({
       where: { campaignId, email: r.email },
       data: {
-        status: resendId ? "sent" : "scheduled", // if this individual send failed, leave as scheduled
+        status: resendId ? "sent" : "failed", // mark failed — not scheduled (no scheduledFor date to retry on)
         sentAt: resendId ? new Date() : null,
         resendEmailId: resendId,
       },
@@ -546,12 +520,14 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
     }
   }
 
-  await prisma.campaign.update({
-    where: { id: campaignId },
-    data: {
-      sentCount: { increment: result.sent },
-    },
-  });
+  if (result.sent > 0) {
+    await prisma.campaign.update({
+      where: { id: campaignId },
+      data: {
+        sentCount: { increment: result.sent },
+      },
+    });
+  }
 
   // Check if all batches are now completed
   const remaining = await prisma.campaignRecipient.count({
@@ -568,7 +544,14 @@ export async function dispatchScheduledBatch(campaignId: string, batchNumber: nu
     });
   }
 
-  return { sent: result.sent, ids: result.ids };
+  if (result.sent === 0 && result.failed > 0) {
+    const errDetail = result.errors?.length
+      ? result.errors.join("; ")
+      : "Resend failed to deliver any emails in this batch.";
+    throw new Error(errDetail);
+  }
+
+  return { sent: result.sent, ids: result.ids, errors: result.errors };
 }
 
 /**
@@ -697,12 +680,9 @@ export async function recordWebhookEventInDb(params: {
   }
 }
 
-/**
- * Cancel a campaign and all its pending batches.
- */
 export async function cancelCampaignInDb(campaignId: string) {
   await prisma.campaignRecipient.updateMany({
-    where: { campaignId, status: "pending" },
+    where: { campaignId, status: { in: ["pending", "scheduled"] } },
     data: { status: "cancelled" },
   });
 
