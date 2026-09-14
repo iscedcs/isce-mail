@@ -13,6 +13,13 @@ export async function POST(
 
     const result = await dispatchScheduledBatch(params.id, batchNumber);
 
+    if (result.sent === 0) {
+      return NextResponse.json(
+        { ok: false, error: (result as any).message || `Batch ${batchNumber} was not dispatched (0 sent).` },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       message: `Batch ${batchNumber} dispatched (${result.sent} sent).`,

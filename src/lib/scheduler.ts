@@ -1,27 +1,17 @@
 /**
- * Scheduler  checks for due scheduled campaigns and dispatches them.
+ * scheduler.ts — checks for due scheduled campaigns and dispatches them.
  * Called every 60s by instrumentation.ts setInterval.
+ *
+ * Neon Postgres via Prisma is the primary store for scheduled batches.
+ * Legacy JSON campaigns are preserved with deprecation warning.
  */
 
 import { listCampaigns, updateCampaign, attachResendIds } from "@/lib/campaigns";
 import { logSend } from "@/lib/send-history";
 import { prisma } from "@/lib/prisma";
 import { dispatchScheduledBatch } from "@/lib/campaign-db";
-
-// Lazy imports of mail modules to avoid loading all templates at startup
-const sendFunctions: Record<string, () => Promise<any>> = {
-  appreciation: () => import("@/lib/mail-action/appreciation/mail").then((m) => m.sendBulkEmailTracked),
-  announcement: () => import("@/lib/mail-action/announcement/mail").then((m) => m.sendBulkEmailTracked),
-  newsletter: () => import("@/lib/mail-action/newsletter/mail").then((m) => m.sendBulkEmailTracked),
-  event: () => import("@/lib/mail-action/event/mail").then((m) => m.sendBulkEmailTracked),
-  holiday: () => import("@/lib/mail-action/holiday/mail").then((m) => m.sendBulkEmailTracked),
-  survey: () => import("@/lib/mail-action/survey/mail").then((m) => m.sendBulkEmailTracked),
-  welcome: () => import("@/lib/mail-action/welcome/mail").then((m) => m.sendBulkEmailTracked),
-  promotion: () => import("@/lib/mail-action/promotion/mail").then((m) => m.sendBulkEmailTracked),
-  "cohort-welcome": () => import("@/lib/mail-action/cohort-welcome/mail").then((m) => m.sendBulkEmailTracked),
-  "course-promo": () => import("@/lib/mail-action/course-promo/mail").then((m) => m.sendBulkEmailTracked),
-  curriculum: () => import("@/lib/mail-action/curriculum/mail").then((m) => m.sendBulkEmailTracked),
-};
+import { resolveProduct } from "@/lib/product-resolver";
+import { renderAndSendBatch } from "@/lib/email-engine";
 
 let isTickerRunning = false;
 
@@ -38,181 +28,120 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
 
   try {
     const now = new Date();
-    const campaigns = listCampaigns();
-    const due = campaigns.filter(
-      (c) =>
-        c.status === "scheduled" &&
-        c.scheduledFor &&
-        new Date(c.scheduledFor) <= now,
-    );
-
     let dispatched = 0;
 
-  for (const campaign of due) {
-    // Mark as sending immediately to prevent double-dispatch
-    updateCampaign(campaign.id, { status: "sending" });
-
+    // 1. Neon Postgres via Prisma — Primary dispatch store for multi-product batches
     try {
-      const sendFnLoader = sendFunctions[campaign.type];
-      if (!sendFnLoader) {
-        updateCampaign(campaign.id, {
-          status: "failed",
-          sentAt: new Date().toISOString(),
-        });
-        continue;
-      }
-
-      const sendFn = await sendFnLoader();
-      const recipients = campaign.recipients.map((r) => ({
-        email: r.email,
-        name: r.firstname,
-      }));
-
-            let result: any;
-      const props = (campaign as any).templateProps || {};
-
-      switch (campaign.type) {
-        case "cohort-welcome":
-          result = await sendFn(
-            recipients,
-            campaign.subject,
-            campaign.basis,
-            campaign.message,
-            props.cohortName || "Our Cohort",
-            props.startDate || new Date().toLocaleDateString(),
-            props.mentorName || "Lead Instructor",
-            props.communityLink || campaign.link || "",
-            campaign.link || "",
-            props.bannerImage,
-          );
-          break;
-        case "course-promo":
-          result = await sendFn(
-            recipients,
-            campaign.subject,
-            campaign.basis,
-            campaign.message,
-            props.courseTitle || campaign.subject,
-            props.originalPrice || "",
-            props.discountPrice || "",
-            props.deadline || "",
-            campaign.link || "",
-            props.bannerImage,
-          );
-          break;
-        case "curriculum":
-          result = await sendFn(
-            recipients,
-            campaign.subject,
-            campaign.basis,
-            campaign.message,
-            props.courseName || campaign.subject,
-            campaign.link || "",
-            props.pdfUrl,
-            props.bannerImage,
-          );
-          break;
-        case "holiday":
-          result = await sendFn(
-            recipients,
-            campaign.subject,
-            campaign.basis,
-            campaign.message,
-            props.image || campaign.link || "",
-          );
-          break;
-        case "newsletter":
-          result = await sendFn(
-            recipients,
-            campaign.subject,
-            campaign.basis,
-            campaign.message,
-            props.image || "",
-          );
-          break;
-        case "promotion":
-          result = await sendFn(
-            recipients,
-            campaign.subject,
-            campaign.basis,
-            campaign.message,
-            campaign.link || "",
-            props.image || "",
-          );
-          break;
-        default:
-          // appreciation, announcement, event, survey, welcome
-          result = await sendFn(
-            recipients,
-            campaign.subject,
-            campaign.basis,
-            campaign.message,
-            campaign.link || "",
-          );
-          break;
-      }
-
-      attachResendIds(campaign.id, result.ids ?? []);
-
-      updateCampaign(campaign.id, {
-        status: "sent",
-        sentAt: new Date().toISOString(),
-        stats: {
-          ...campaign.stats,
-          sent: result.sent,
-          failed: result.failed,
+      // Self-healing: Reset any recipients stuck in "sending" for > 5 minutes without a resendEmailId
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      await prisma.campaignRecipient.updateMany({
+        where: {
+          status: "sending",
+          resendEmailId: null,
+          updatedAt: { lte: fiveMinutesAgo },
+        },
+        data: {
+          status: "scheduled",
         },
       });
 
-      logSend({
-        type: campaign.type,
-        basis: campaign.basis,
-        subject: campaign.subject,
-        recipientCount: result.sent,
+      const dueBatches = await prisma.campaignRecipient.findMany({
+        where: {
+          status: { in: ["pending", "scheduled"] },
+          scheduledFor: { lte: now },
+        },
+        select: {
+          campaignId: true,
+          batchNumber: true,
+        },
+        distinct: ["campaignId", "batchNumber"],
       });
 
-      dispatched++;
-    } catch (err) {
-      updateCampaign(campaign.id, {
-        status: "failed",
-        sentAt: new Date().toISOString(),
-      });
-      console.error(`[scheduler] Campaign ${campaign.id} failed:`, err);
+      for (const batch of dueBatches) {
+        try {
+          await dispatchScheduledBatch(batch.campaignId, batch.batchNumber);
+          dispatched++;
+        } catch (batchErr) {
+          console.error(
+            `[scheduler] Failed to auto-dispatch batch ${batch.batchNumber} for campaign ${batch.campaignId}:`,
+            batchErr,
+          );
+        }
+      }
+    } catch (dbErr) {
+      console.error("[scheduler] Database batch polling error:", dbErr);
     }
-  }
 
-  // 2. Check Neon Postgres via Prisma for due batches
-  try {
-    const dueBatches = await prisma.campaignRecipient.findMany({
-      where: {
-        status: { in: ["pending", "scheduled"] },
-        scheduledFor: { lte: now },
-      },
-      select: {
-        campaignId: true,
-        batchNumber: true,
-      },
-      distinct: ["campaignId", "batchNumber"],
-    });
+    // 2. Legacy flat-file JSON store (deprecated)
+    try {
+      const legacyCampaigns = listCampaigns();
+      const dueLegacy = legacyCampaigns.filter(
+        (c) =>
+          c.status === "scheduled" &&
+          c.scheduledFor &&
+          new Date(c.scheduledFor) <= now,
+      );
 
-    for (const batch of dueBatches) {
-      try {
-        await dispatchScheduledBatch(batch.campaignId, batch.batchNumber);
-        dispatched++;
-      } catch (batchErr) {
-        console.error(
-          `[scheduler] Failed to auto-dispatch batch ${batch.batchNumber} for campaign ${batch.campaignId}:`,
-          batchErr,
+      if (dueLegacy.length > 0) {
+        console.warn(
+          `[scheduler] Found ${dueLegacy.length} legacy JSON scheduled campaign(s). Migrating to engine dispatch.`,
         );
       }
+
+      for (const campaign of dueLegacy) {
+        updateCampaign(campaign.id, { status: "sending" });
+
+        try {
+          const product = await resolveProduct(campaign.basis || "isce");
+          const recipients = campaign.recipients.map((r) => ({
+            email: r.email,
+            name: r.firstname,
+          }));
+          const props = (campaign as any).templateProps || {};
+
+          const result = await renderAndSendBatch(
+            product,
+            campaign.type,
+            recipients,
+            campaign.subject,
+            campaign.message,
+            { ...props, link: campaign.link },
+          );
+
+          attachResendIds(campaign.id, result.ids ?? []);
+
+          updateCampaign(campaign.id, {
+            status: "sent",
+            sentAt: new Date().toISOString(),
+            stats: {
+              ...campaign.stats,
+              sent: result.sent,
+              failed: result.failed,
+            },
+          });
+
+          logSend({
+            type: campaign.type,
+            basis: campaign.basis,
+            subject: campaign.subject,
+            recipientCount: result.sent,
+          });
+
+          dispatched++;
+        } catch (err) {
+          updateCampaign(campaign.id, {
+            status: "failed",
+            sentAt: new Date().toISOString(),
+          });
+          console.error(`[scheduler] Legacy campaign ${campaign.id} failed:`, err);
+        }
+      }
+    } catch (legacyErr) {
+      // Non-fatal if legacy store doesn't exist
     }
-  } catch (dbErr) {
-    // Database check optional in test / non-db environments
+
+    return { dispatched, skipped: 0 };
+  } finally {
+    isTickerRunning = false;
   }
-
-  return { dispatched, skipped: due.length - dispatched };
-} finally {
-  isTickerRunning = false;
 }
-}
-

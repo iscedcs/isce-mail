@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveProduct } from "@/lib/product-resolver";
+import { renderEmailPreview } from "@/lib/email-engine";
 import { render } from "@react-email/render";
 
 export const dynamic = "force-dynamic";
 
-// PT templates
+// Legacy templates retained as fallback during transition
 import PtWelcomeMail from "../../../../emails/templates/palmtechniq/welcome";
 import PtNewsletterMail from "../../../../emails/templates/palmtechniq/newsletter";
 import PtPromotionMail from "../../../../emails/templates/palmtechniq/promotion";
@@ -16,7 +18,6 @@ import PtCurriculumMail from "../../../../emails/templates/palmtechniq/curriculu
 import PtCoursePromoMail from "../../../../emails/templates/palmtechniq/course-promo";
 import PtCohortWelcomeMail from "../../../../emails/templates/palmtechniq/cohort-welcome";
 
-// ISCE templates
 import IsceWelcomeMail from "../../../../emails/templates/isce/welcome";
 import IsceNewsletterMail from "../../../../emails/templates/isce/newsletter";
 import IscePromotionMail from "../../../../emails/templates/isce/promotion";
@@ -37,15 +38,15 @@ const PREVIEW_DEFAULTS = {
   courseTitle: "Full-Stack Bootcamp",
   originalPrice: "₦150,000",
   discountPrice: "₦89,999",
-  deadline: "December 31, 2025",
-  cohortName: "Cohort 7 — Backend Engineering",
+  deadline: "December 31, 2026",
+  cohortName: "Cohort 1 — Next-Gen Tech",
   startDate: "January 15, 2026",
-  mentorName: "John Doe",
+  mentorName: "Lead Instructor",
   communityLink: "https://example.com/community",
 };
 
-function resolveTemplate(type: string, basis: string, data: any) {
-  const isPT = basis === "PalmTechniq";
+function legacyResolveTemplate(type: string, basis: string, data: any) {
+  const isPT = basis.toLowerCase() === "palmtechniq";
   const d = { ...PREVIEW_DEFAULTS, ...data };
 
   switch (type) {
@@ -60,11 +61,7 @@ function resolveTemplate(type: string, basis: string, data: any) {
     case "promotion":
       return isPT
         ? PtPromotionMail({ message: d.message, link: d.link, image: d.image })
-        : IscePromotionMail({
-            message: d.message,
-            link: d.link,
-            image: d.image,
-          });
+        : IscePromotionMail({ message: d.message, link: d.link, image: d.image });
     case "survey":
       return isPT
         ? PtSurveyMail({ message: d.message, link: d.link })
@@ -83,68 +80,20 @@ function resolveTemplate(type: string, basis: string, data: any) {
         : IsceAnnouncementMail({ message: d.message, link: d.link });
     case "appreciation":
       return isPT
-        ? PtAppreciationMail({
-            message: d.message,
-            link: d.link,
-            image: d.image,
-          })
-        : IsceAppreciationMail({
-            message: d.message,
-            link: d.link,
-            image: d.image,
-          });
+        ? PtAppreciationMail({ message: d.message, link: d.link, image: d.image })
+        : IsceAppreciationMail({ message: d.message, link: d.link, image: d.image });
     case "curriculum":
       return isPT
-        ? PtCurriculumMail({
-            message: d.message,
-            link: d.link,
-            pdfUrl: d.pdfUrl,
-            courseName: d.courseName,
-            bannerImage: d.bannerImage,
-          })
-        : IsceCurriculumMail({
-            message: d.message,
-            link: d.link,
-            pdfUrl: d.pdfUrl,
-            courseName: d.courseName,
-            bannerImage: d.bannerImage,
-          });
+        ? PtCurriculumMail({ message: d.message, link: d.link, pdfUrl: d.pdfUrl, courseName: d.courseName, bannerImage: d.bannerImage })
+        : IsceCurriculumMail({ message: d.message, link: d.link, pdfUrl: d.pdfUrl, courseName: d.courseName, bannerImage: d.bannerImage });
     case "course-promo":
       return isPT
-        ? PtCoursePromoMail({
-            message: d.message,
-            link: d.link,
-            courseTitle: d.courseTitle,
-            originalPrice: d.originalPrice,
-            discountPrice: d.discountPrice,
-            deadline: d.deadline,
-          })
-        : IsceCoursePromoMail({
-            message: d.message,
-            link: d.link,
-            courseTitle: d.courseTitle,
-            originalPrice: d.originalPrice,
-            discountPrice: d.discountPrice,
-            deadline: d.deadline,
-          });
+        ? PtCoursePromoMail({ message: d.message, link: d.link, courseTitle: d.courseTitle, originalPrice: d.originalPrice, discountPrice: d.discountPrice, deadline: d.deadline })
+        : IsceCoursePromoMail({ message: d.message, link: d.link, courseTitle: d.courseTitle, originalPrice: d.originalPrice, discountPrice: d.discountPrice, deadline: d.deadline });
     case "cohort-welcome":
       return isPT
-        ? PtCohortWelcomeMail({
-            message: d.message,
-            link: d.link,
-            cohortName: d.cohortName,
-            startDate: d.startDate,
-            mentorName: d.mentorName,
-            communityLink: d.communityLink,
-          })
-        : IsceCohortWelcomeMail({
-            message: d.message,
-            link: d.link,
-            cohortName: d.cohortName,
-            startDate: d.startDate,
-            mentorName: d.mentorName,
-            communityLink: d.communityLink,
-          });
+        ? PtCohortWelcomeMail({ message: d.message, link: d.link, cohortName: d.cohortName, startDate: d.startDate, mentorName: d.mentorName, communityLink: d.communityLink })
+        : IsceCohortWelcomeMail({ message: d.message, link: d.link, cohortName: d.cohortName, startDate: d.startDate, mentorName: d.mentorName, communityLink: d.communityLink });
     default:
       return null;
   }
@@ -152,22 +101,39 @@ function resolveTemplate(type: string, basis: string, data: any) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const { type, basis = "ISCE", data = {} } = body;
+  const { type, basis = "isce", data = {} } = body;
 
   if (!type) {
     return NextResponse.json({ error: "Missing type" }, { status: 400 });
   }
 
-  const element = resolveTemplate(type, basis, data);
-  if (!element) {
-    return NextResponse.json(
-      { error: "Unknown template type" },
-      { status: 404 },
-    );
+  const mergedData = { ...PREVIEW_DEFAULTS, ...data };
+
+  // 1. Primary path: dynamic multi-product email engine
+  try {
+    const product = await resolveProduct(basis);
+    const html = await renderEmailPreview(product, type, mergedData);
+    return new NextResponse(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  } catch (err: any) {
+    console.warn(`[preview] Dynamic engine failed for product "${basis}", trying legacy fallback:`, err?.message || err);
   }
 
-  const html = await render(element);
-  return new NextResponse(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+  // 2. Legacy fallback
+  try {
+    const element = legacyResolveTemplate(type, basis, mergedData);
+    if (!element) {
+      return NextResponse.json({ error: `Unknown template type: ${type}` }, { status: 404 });
+    }
+    const html = await render(element);
+    return new NextResponse(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  } catch (legacyErr: any) {
+    return NextResponse.json(
+      { error: legacyErr?.message || "Failed to render preview" },
+      { status: 500 },
+    );
+  }
 }

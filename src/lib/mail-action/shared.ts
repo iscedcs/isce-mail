@@ -5,7 +5,19 @@ import { ReactElement } from "react";
 // Types
 // ---------------------------------------------------------------------------
 
-export type IBasis = "ISCE" | "PalmTechniq";
+/**
+ * ProductSlug — a string identifying a product (e.g. "gada", "isce", "palmtechniq").
+ *
+ * Previously typed as `"ISCE" | "PalmTechniq"` — widened to `string` to support
+ * dynamic multi-product onboarding without compile-time changes.
+ *
+ * @deprecated Use `ProductSlug` going forward. `IBasis` is kept as an alias for
+ * backward compatibility with the 11 existing mail-action modules.
+ */
+export type ProductSlug = string;
+
+/** @deprecated Use ProductSlug instead. */
+export type IBasis = ProductSlug;
 
 /** A single recipient with their display name (for personalisation). */
 export type BatchRecipient = {
@@ -22,18 +34,23 @@ export interface EmailPayload {
 }
 
 // ---------------------------------------------------------------------------
-// Resend instances — one per brand
+// Resend instances — legacy .env-based instances for backward compat.
+// New code should use getResendForProduct() from product-resolver.ts
 // ---------------------------------------------------------------------------
 
 const palmtechniqResend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
 const isceResend = new Resend(process.env.ISCE_RESEND_API_KEY);
 
-export function getResendInstance(basis: IBasis): Resend {
-  return basis === "PalmTechniq" ? palmtechniqResend : isceResend;
+/** @deprecated Use getResendForProduct(product) from product-resolver.ts */
+export function getResendInstance(basis: ProductSlug): Resend {
+  return basis === "PalmTechniq" || basis.toLowerCase() === "palmtechniq"
+    ? palmtechniqResend
+    : isceResend;
 }
 
-export function getSenderAddress(basis: IBasis): string {
-  return basis === "PalmTechniq"
+/** @deprecated Use getSenderForProduct(product) from product-resolver.ts */
+export function getSenderAddress(basis: ProductSlug): string {
+  return basis === "PalmTechniq" || basis.toLowerCase() === "palmtechniq"
     ? "PalmTechnIQ <support@palmtechniq.com>"
     : "ISCE Team <hello@isce.tech>";
 }
@@ -113,7 +130,7 @@ export function parseEmailString(raw: string): BatchRecipient[] {
   const recipients: BatchRecipient[] = [];
   const seen = new Set<string>();
 
-  const isEmail = (s: string) => /^[^s@]+@[^s@]+\.[^s@]+$/.test(s);
+  const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
   for (const line of lines) {
     const parts = line.split(",").map((p) => p.trim());
@@ -166,27 +183,32 @@ export interface BatchResult {
   sent: number;
   failed: number;
   ids: { resendEmailId: string; email: string }[];
+  errors?: string[];
 }
 
 /**
- * Same as sendBatch but tracks per-email success/failure.
+ * Same as sendBatch but tracks per-email success/failure and errors.
  * Used by fire-and-forget API routes so job status is accurate.
  */
 export async function sendBatchTracked(
   resend: Resend,
   payloads: EmailPayload[],
 ): Promise<BatchResult> {
-  if (payloads.length === 0) return { sent: 0, failed: 0, ids: [] };
+  if (payloads.length === 0) return { sent: 0, failed: 0, ids: [], errors: [] };
 
   let sent = 0;
   let failed = 0;
   const ids: { resendEmailId: string; email: string }[] = [];
+  const errors: string[] = [];
 
   for (let i = 0; i < payloads.length; i += RESEND_BATCH_LIMIT) {
     const chunk = payloads.slice(i, i + RESEND_BATCH_LIMIT);
     try {
       const result = await resend.batch.send(chunk);
       if (result.error) {
+        console.error("[sendBatchTracked] Resend batch.send returned error:", result.error);
+        const msg = result.error.message || JSON.stringify(result.error);
+        errors.push(msg);
         failed += chunk.length;
       } else {
         const items = result.data?.data ?? [];
@@ -200,10 +222,12 @@ export async function sendBatchTracked(
           }
         }
       }
-    } catch {
+    } catch (err: any) {
+      console.error("[sendBatchTracked] Resend batch.send threw exception:", err);
+      errors.push(err?.message || "Unknown error during Resend batch send");
       failed += chunk.length;
     }
   }
 
-  return { sent, failed, ids };
+  return { sent, failed, ids, errors };
 }

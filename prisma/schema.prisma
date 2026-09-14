@@ -6,48 +6,181 @@ datasource db {
   provider = "postgresql"
 }
 
+// ---------------------------------------------------------------------------
+// Product — a brand/tenant that sends emails through this platform.
+// Every product must supply its own Resend API key (stored encrypted).
+// ---------------------------------------------------------------------------
+model Product {
+  id          String  @id @default(cuid())
+  name        String // e.g. "Gada", "PalmTechnIQ", "ISCE Tech"
+  slug        String  @unique // e.g. "gada", "palmtechniq", "isce"
+  description String?
+
+  // Sending Configuration (resendApiKey stored as AES-256-GCM ciphertext)
+  senderName    String // e.g. "Gada Team"
+  senderEmail   String // e.g. "hello@gada.app"
+  replyToEmail  String?
+  resendApiKey  String // MANDATORY — encrypted ciphertext
+  webhookSecret String? // Encrypted — for verifying Resend webhooks per product
+
+  // Brand Theming & Styling
+  logoUrl         String // URL to logo image
+  websiteUrl      String // Official website URL
+  primaryColor    String @default("#000000") // Header bg / main brand color
+  accentColor     String @default("#000000") // CTA button bg color
+  buttonTextColor String @default("#ffffff")
+  buttonRadius    String @default("full") // "full" | "md" | "none"
+
+  // Legal & Footer
+  supportEmail     String?
+  unsubscribeEmail String?
+  address          String? // Physical mailing address for footer
+  socialLinks      Json? // { linkedin?, instagram?, twitter?, facebook?, slack? }
+
+  // Sync / Integration Settings (e.g. PalmTechniq user sync)
+  syncUrl    String? // Optional endpoint to sync users from product backend
+  syncApiKey String? // Encrypted — auth token for the sync endpoint
+
+  // Email Shell Layout Configuration
+  // Controls how BrandedEmailShell renders the header, footer, and social icons.
+  // JSON shape: { headerStyle, footerStyle, socialLayout, socialIconSize }
+  // Defaults (null = use shell defaults): headerStyle="logo-banner", footerStyle="dark",
+  //   socialLayout="left", socialIconSize=18
+  emailLayout Json?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  campaigns       Campaign[]
+  templates       EmailTemplate[]
+  contactStatuses ContactProductStatus[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// EmailTemplate — per-product, per-type default configuration for each of
+// the 11 campaign template types.
+// ---------------------------------------------------------------------------
+model EmailTemplate {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type        String // "welcome" | "newsletter" | "announcement" | "appreciation"
+  // "survey" | "event" | "holiday" | "promotion"
+  // "curriculum" | "course-promo" | "cohort-welcome"
+  name        String // Human-readable title e.g. "Onboarding Welcome Email"
+  description String?
+
+  // Default values auto-populated into the campaign form when product + type selected
+  defaultSubject  String? // Subject with token placeholders ({{firstName}}, etc.)
+  previewText     String? // Pre-header / preview text shown in inbox
+  defaultBanner   String? // Hero image URL
+  defaultCtaLabel String? // e.g. "Claim Offer", "Visit Website"
+  defaultCtaUrl   String? // e.g. "https://..."
+  starterBody     String? @db.Text // Initial HTML for the editor
+
+  // Type-specific extra config stored as JSON
+  // e.g. course-promo: { originalPrice, discountPrice, deadline }
+  // e.g. cohort-welcome: { cohortName, startDate, mentorName, communityLink }
+  customProps Json?
+
+  // Optional per-template color/font overrides on top of product branding
+  stylingOverrides Json?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, type])
+  @@index([productId])
+  @@index([type])
+}
+
+// ---------------------------------------------------------------------------
+// Contact — global email entity (one row per email address, platform-wide).
+// Bounce/suppression is platform-wide to protect all Resend accounts.
+// Product-specific unsubscribes are tracked in ContactProductStatus.
+// ---------------------------------------------------------------------------
 model Contact {
-  id             String              @id @default(cuid())
-  email          String              @unique
+  id             String    @id @default(cuid())
+  email          String    @unique
   firstName      String?
-  status         String              @default("active") // "active" | "bounced" | "suppressed" | "unsubscribed"
+  status         String    @default("active") // "active" | "bounced" | "suppressed"
   bounceReason   String?
-  totalSent      Int                 @default(0)
-  totalDelivered Int                 @default(0)
-  totalOpened    Int                 @default(0)
-  totalClicked   Int                 @default(0)
+  totalSent      Int       @default(0)
+  totalDelivered Int       @default(0)
+  totalOpened    Int       @default(0)
+  totalClicked   Int       @default(0)
   lastSentAt     DateTime?
   lastEngagedAt  DateTime?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  recipients     CampaignRecipient[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  recipients      CampaignRecipient[]
+  productStatuses ContactProductStatus[]
 
   @@index([status])
 }
 
+// ---------------------------------------------------------------------------
+// ContactProductStatus — per-product subscription status for a contact.
+// "unsubscribed" from one product does NOT affect others.
+// Hard bounces on Contact.status suppress globally.
+// ---------------------------------------------------------------------------
+model ContactProductStatus {
+  id        String   @id @default(cuid())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  status    String   @default("active") // "active" | "unsubscribed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([contactId, productId])
+  @@index([productId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Campaign — one outbound send event (immediate or scheduled, potentially
+// spanning multiple daily batches of 100).
+// ---------------------------------------------------------------------------
 model Campaign {
-  id              String              @id @default(cuid())
+  id              String   @id @default(cuid())
   type            String // "newsletter", "welcome", "announcement", etc.
-  basis           String // "ISCE" | "PalmTechniq"
+  basis           String // Preserved for backward compat — matches Product.slug
+  productId       String? // FK to Product (null for legacy campaigns)
+  product         Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   subject         String
-  message         String              @db.Text
+  message         String   @db.Text
   link            String?
   templateProps   Json?
-  status          String              @default("draft") // "draft" | "sending" | "completed" | "scheduled" | "cancelled"
-  totalRecipients Int                 @default(0)
-  sentCount       Int                 @default(0)
-  deliveredCount  Int                 @default(0)
-  openedCount     Int                 @default(0)
-  clickedCount    Int                 @default(0)
-  bouncedCount    Int                 @default(0)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  recipients      CampaignRecipient[]
+  status          String   @default("draft") // "draft" | "sending" | "completed" | "scheduled" | "cancelled"
+  totalRecipients Int      @default(0)
+  sentCount       Int      @default(0)
+  deliveredCount  Int      @default(0)
+  openedCount     Int      @default(0)
+  clickedCount    Int      @default(0)
+  bouncedCount    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  recipients CampaignRecipient[]
 
   @@index([createdAt])
   @@index([status])
+  @@index([productId])
+  @@index([basis])
 }
 
+// ---------------------------------------------------------------------------
+// CampaignRecipient — one row per email per campaign batch.
+// ---------------------------------------------------------------------------
 model CampaignRecipient {
   id            String    @id @default(cuid())
   campaignId    String
@@ -56,8 +189,8 @@ model CampaignRecipient {
   contact       Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
   email         String
   firstName     String?
-  batchNumber   Int       @default(1) // 1 (1-100), 2 (101-200), 3 (201-235)
-  scheduledFor  DateTime? // Timestamp for scheduled batch delivery
+  batchNumber   Int       @default(1)
+  scheduledFor  DateTime?
   status        String    @default("pending") // "pending" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "suppressed"
   resendEmailId String?
   bounceReason  String?
@@ -75,6 +208,9 @@ model CampaignRecipient {
   @@index([status])
 }
 
+// ---------------------------------------------------------------------------
+// EmailEvent — raw event log from Resend webhooks.
+// ---------------------------------------------------------------------------
 model EmailEvent {
   id             String   @id @default(cuid())
   campaignId     String?
@@ -86,4 +222,23 @@ model EmailEvent {
 
   @@index([resendEmailId])
   @@index([campaignId])
+}
+
+// ---------------------------------------------------------------------------
+// AdminUser — credentials and password reset for platform administrators.
+// ---------------------------------------------------------------------------
+model AdminUser {
+  id               String    @id @default(cuid())
+  username         String    @unique
+  email            String    @unique
+  passwordHash     String
+  role             String    @default("admin") // "super_admin" | "admin"
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([username])
+  @@index([email])
+  @@index([resetToken])
 }

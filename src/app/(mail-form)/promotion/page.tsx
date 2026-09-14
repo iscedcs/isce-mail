@@ -3,13 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Editor from "@/components/shared/editor-component/editor";
-import {
-  SelectValue,
-  SelectTrigger,
-  SelectItem,
-  SelectContent,
-  Select,
-} from "@/components/ui/select";
+import ProductSelect from "@/components/shared/product-select";
 import { Button } from "@/components/ui/button";
 import { JSX, ReactNode, useState, useEffect } from "react";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
@@ -189,23 +183,15 @@ export default function PromotionForm() {
               </Tooltip>
             </TooltipProvider>
           </Label>
-          <Select
-            defaultValue={form.basis}
-            required
-            onValueChange={(e: IBasis) => {
-              setForm({
-                ...form,
-                basis: e,
-              });
-            }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a basis" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ISCE">ISCE</SelectItem>
-              <SelectItem value="PalmTechniq">PalmTechniq</SelectItem>
-            </SelectContent>
-          </Select>
+          <ProductSelect
+            value={form.basis}
+            onValueChange={(val) => {
+              setForm((prev) => ({
+                ...prev,
+                basis: val,
+              }));
+            }}
+          />
         </div>
         <ImageUploader
           value={form.image}
@@ -300,6 +286,7 @@ export default function PromotionForm() {
           </Label>
           <CSVUploader
             handleUpload={handleFileUpload}
+            productSlug={form.basis}
             onSyncedCsv={(emailsCsv) => {
               setCsvContent(emailsCsv);
               setForm((prev) => ({ ...prev, emails: emailsCsv }));

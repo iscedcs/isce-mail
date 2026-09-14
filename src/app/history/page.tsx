@@ -99,6 +99,8 @@ export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [events, setEvents] = useState<EmailEvent[]>([]);
+  const [products, setProducts] = useState<Array<{ id: string; name: string; slug: string; primaryColor?: string }>>([]);
+  const [selectedProductFilter, setSelectedProductFilter] = useState<string>("all");
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<number | "all">("all");
   const [dispatchingBatch, setDispatchingBatch] = useState<number | null>(null);
@@ -110,11 +112,15 @@ export default function DashboardPage() {
       fetch("/api/campaigns").then((r) => r.json()).catch(() => []),
       fetch("/api/jobs").then((r) => r.json()).catch(() => []),
       fetch("/api/email-events").then((r) => r.json()).catch(() => []),
+      fetch("/api/products").then((r) => r.json()).catch(() => ({ products: [] })),
     ])
-      .then(([c, j, e]) => {
+      .then(([c, j, e, p]) => {
         setCampaigns(Array.isArray(c) ? c : []);
         setJobs(Array.isArray(j) ? j : []);
         setEvents(Array.isArray(e) ? e : []);
+        if (p && Array.isArray(p.products)) {
+          setProducts(p.products);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -219,7 +225,30 @@ export default function DashboardPage() {
     return timeA - timeB;
   });
 
-  const sentCampaigns = campaigns.filter(
+  const productMap = new Map(products.map((p) => [p.slug.toLowerCase(), p]));
+
+  const getBrandInfo = (basis?: string) => {
+    const slug = (basis || "").toLowerCase();
+    const found = productMap.get(slug);
+    if (found) {
+      return { name: found.name, color: found.primaryColor || "#0f172a" };
+    }
+    if (slug === "palmtechniq") return { name: "PalmTechnIQ", color: "#021A1A" };
+    if (slug === "isce") return { name: "ISCE Tech", color: "#000000" };
+    return { name: basis || "Unknown", color: "#475569" };
+  };
+
+  const filteredScheduledItems = scheduledItems.filter((item) => {
+    if (selectedProductFilter === "all") return true;
+    return (item.basis || "").toLowerCase() === selectedProductFilter.toLowerCase();
+  });
+
+  const filteredCampaigns = campaigns.filter((c) => {
+    if (selectedProductFilter === "all") return true;
+    return (c.basis || "").toLowerCase() === selectedProductFilter.toLowerCase();
+  });
+
+  const sentCampaigns = filteredCampaigns.filter(
     (c) => c.status === "sent" || c.status === "sending" || c.status === "completed" || c.status === "failed",
   );
 
@@ -230,10 +259,13 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Campaign Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Track sends, scheduled emails, and audience engagement
+            Track sends, scheduled emails, and audience engagement across all brands
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => (window.location.href = "/admin/products")}>
+            Manage Brands
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchAll}>
             <RefreshCw className="h-4 w-4 mr-1.5" />
             Refresh
@@ -244,6 +276,47 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Brand Filter Pills */}
+      {products.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 text-xs">
+          <span className="text-muted-foreground font-medium mr-1">Brand Filter:</span>
+          <button
+            onClick={() => setSelectedProductFilter("all")}
+            className={`px-3 py-1 rounded-full font-medium transition-all ${
+              selectedProductFilter === "all"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            All Brands ({campaigns.length})
+          </button>
+          {products.map((p) => {
+            const count = campaigns.filter(
+              (c) => (c.basis || "").toLowerCase() === p.slug.toLowerCase(),
+            ).length;
+            const isSelected = selectedProductFilter.toLowerCase() === p.slug.toLowerCase();
+            return (
+              <button
+                key={p.id || p.slug}
+                onClick={() => setSelectedProductFilter(p.slug)}
+                className={`px-3 py-1 rounded-full font-medium flex items-center gap-1.5 transition-all ${
+                  isSelected
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <span
+                  className="w-2 h-2 rounded-full inline-block border border-black/10"
+                  style={{ backgroundColor: p.primaryColor || "#000" }}
+                />
+                <span>{p.name}</span>
+                <span className="opacity-70 text-[10px]">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -346,9 +419,18 @@ export default function DashboardPage() {
                           {c.type}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={c.basis === "PalmTechniq" ? "default" : "secondary"}>
-                            {c.basis}
-                          </Badge>
+                          {(() => {
+                            const brand = getBrandInfo(c.basis);
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium text-white shadow-xs"
+                                style={{ backgroundColor: brand.color }}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                                {brand.name}
+                              </span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="max-w-[180px] truncate text-sm">
                           {c.subject}
@@ -423,7 +505,7 @@ export default function DashboardPage() {
           {/* --- SCHEDULED TAB --- */}
           {tab === "scheduled" && (
             <div className="space-y-3">
-              {scheduledItems.length === 0 ? (
+              {filteredScheduledItems.length === 0 ? (
                 <p className="text-gray-400 text-sm py-12 text-center">
                   No scheduled campaigns or queued batches. Choose a{" "}
                   <a href="/" className="text-indigo-600 underline">
@@ -445,15 +527,24 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {scheduledItems.map((item) => (
+                    {filteredScheduledItems.map((item) => (
                       <TableRow key={item.id} className="hover:bg-gray-50">
                         <TableCell className="capitalize font-medium text-sm">
                           {item.type}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={item.basis === "PalmTechniq" ? "default" : "secondary"}>
-                            {item.basis}
-                          </Badge>
+                          {(() => {
+                            const brand = getBrandInfo(item.basis);
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium text-white shadow-xs"
+                                style={{ backgroundColor: brand.color }}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                                {brand.name}
+                              </span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-sm font-medium text-gray-900">
                           {item.subject}
