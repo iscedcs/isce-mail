@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dispatchScheduledBatch } from "@/lib/campaign-db";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,22 @@ export async function POST(
 ) {
   try {
     const body = await req.json().catch(() => ({}));
-    const batchNumber = Number(body.batchNumber) || 2;
+    const batchNumber = Number(body.batchNumber) || 1;
+
+    // Reset any "failed" recipients for this batch back to "scheduled"
+    // so a manual retry always works — even if the circuit breaker tripped.
+    await prisma.campaignRecipient.updateMany({
+      where: {
+        campaignId: params.id,
+        batchNumber,
+        status: "failed",
+        resendEmailId: null,
+      },
+      data: {
+        status: "scheduled",
+        scheduledFor: new Date(),
+      },
+    });
 
     const result = await dispatchScheduledBatch(params.id, batchNumber);
 
