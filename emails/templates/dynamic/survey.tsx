@@ -9,13 +9,18 @@ export interface DynamicSurveyMailProps {
   message: string;
   link: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicSurveyMail({
   product, message, link,
   previewText = `Share your feedback with ${product.name}`,
+  ctaText, ctaLabel,
 }: DynamicSurveyMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Take Survey";
+
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
       <Section style={{ padding: "24px 32px", color: "#333333" }}>{sanitizedHTML}</Section>
@@ -25,7 +30,7 @@ export default function DynamicSurveyMail({
           padding: "12px 28px",
           borderRadius: product.buttonRadius === "full" ? "9999px" : product.buttonRadius === "md" ? "6px" : "0px",
           fontSize: "13px", fontWeight: "600",
-        }}>Take Survey</Button>
+        }}>{actionText}</Button>
       </Section>
     </BrandedEmailShell>
   );

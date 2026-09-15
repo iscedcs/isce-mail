@@ -14,6 +14,8 @@ export interface DynamicWelcomeMailProps {
   link: string;
   bannerImage?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicWelcomeMail({
@@ -22,8 +24,11 @@ export default function DynamicWelcomeMail({
   link,
   bannerImage,
   previewText = `Welcome to ${product.name}!`,
+  ctaText,
+  ctaLabel,
 }: DynamicWelcomeMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || `Visit ${product.name}`;
 
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
@@ -63,7 +68,7 @@ export default function DynamicWelcomeMail({
             textDecoration: "none",
           }}
         >
-          Visit {product.name}
+          {actionText}
         </Button>
       </Section>
     </BrandedEmailShell>

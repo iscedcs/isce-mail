@@ -17,10 +17,13 @@ interface PtPromotionMailProps {
   message: string;
   link: string;
   image: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
-const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
+const PtPromotionMail = ({ message, link, image, ctaText, ctaLabel }: PtPromotionMailProps) => {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Be the first to try it out";
   const year = new Date().getFullYear();
 
   return (
@@ -93,7 +96,7 @@ const PtPromotionMail = ({ message, link, image }: PtPromotionMailProps) => {
                   borderRadius: "8px",
                   display: "inline-block",
                 }}>
-                Be the first to try it out
+                {actionText}
               </Button>
             </Section>
 

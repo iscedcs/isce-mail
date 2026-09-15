@@ -21,6 +21,8 @@ interface ISCEPromotionMailProps {
   message: string;
   link: string;
   image: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
@@ -31,8 +33,11 @@ const ISCEPromotionMail = ({
   message,
   link,
   image,
+  ctaText,
+  ctaLabel,
 }: ISCEPromotionMailProps) => {
   const santizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Be the first to try it out";
   const date = new Date().getFullYear();
 
   return (
@@ -65,7 +70,7 @@ const ISCEPromotionMail = ({
                   href={link}
                   className=" cursor-pointer text-white text-[13px] bg-black "
                   style={{ padding: "10px 20px", margin: "0 auto" }}>
-                  Be the first to try it out
+                  {actionText}
                 </Button>
               </Section>
               <Hr className="mt-[30px]" />

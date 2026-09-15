@@ -10,13 +10,18 @@ export interface DynamicAppreciationMailProps {
   link: string;
   image?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicAppreciationMail({
   product, message, link, image,
   previewText = `A message of appreciation from ${product.name}`,
+  ctaText, ctaLabel,
 }: DynamicAppreciationMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Thank You";
+
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
       {image && (
@@ -32,7 +37,7 @@ export default function DynamicAppreciationMail({
           padding: "12px 28px",
           borderRadius: product.buttonRadius === "full" ? "9999px" : product.buttonRadius === "md" ? "6px" : "0px",
           fontSize: "13px", fontWeight: "600",
-        }}>Thank You</Button>
+        }}>{actionText}</Button>
       </Section>
     </BrandedEmailShell>
   );

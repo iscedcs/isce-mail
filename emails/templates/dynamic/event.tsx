@@ -10,13 +10,18 @@ export interface DynamicEventMailProps {
   link: string;
   image?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicEventMail({
   product, message, link, image,
   previewText = `Event invitation from ${product.name}`,
+  ctaText, ctaLabel,
 }: DynamicEventMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Register Now";
+
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
       {image && (
@@ -32,7 +37,7 @@ export default function DynamicEventMail({
           padding: "12px 28px",
           borderRadius: product.buttonRadius === "full" ? "9999px" : product.buttonRadius === "md" ? "6px" : "0px",
           fontSize: "13px", fontWeight: "600",
-        }}>Register Now</Button>
+        }}>{actionText}</Button>
       </Section>
     </BrandedEmailShell>
   );

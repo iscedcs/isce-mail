@@ -204,6 +204,12 @@ export default function AdminTemplatesPage() {
           basis: slug,
           data: {
             message: tpl.starterBody || "<p>Hello {{firstName}}, this is a preview message.</p>",
+            ctaLabel: tpl.defaultCtaLabel,
+            ctaText: tpl.defaultCtaLabel,
+            link: tpl.defaultCtaUrl || "https://example.com",
+            image: tpl.defaultBanner,
+            bannerImage: tpl.defaultBanner,
+            previewText: tpl.previewText,
             ...(tpl.customProps || {}),
           },
         }),

@@ -10,13 +10,18 @@ export interface DynamicPromotionMailProps {
   link: string;
   image?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicPromotionMail({
   product, message, link, image,
   previewText = `Special offer from ${product.name}`,
+  ctaText, ctaLabel,
 }: DynamicPromotionMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Shop Now";
+
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
       {image && (
@@ -32,7 +37,7 @@ export default function DynamicPromotionMail({
           padding: "12px 28px",
           borderRadius: product.buttonRadius === "full" ? "9999px" : product.buttonRadius === "md" ? "6px" : "0px",
           fontSize: "13px", fontWeight: "600",
-        }}>Shop Now</Button>
+        }}>{actionText}</Button>
       </Section>
     </BrandedEmailShell>
   );

@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
       recipients,
       templateProps: {
         image: body.image,
+        ctaText: body.ctaText || body.ctaLabel,
+        ctaLabel: body.ctaLabel || body.ctaText,
       },
     });
 

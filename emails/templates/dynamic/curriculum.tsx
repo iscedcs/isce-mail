@@ -12,13 +12,17 @@ export interface DynamicCurriculumMailProps {
   pdfUrl?: string;
   bannerImage?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicCurriculumMail({
   product, message, courseName, link, pdfUrl, bannerImage,
   previewText = `${courseName} Curriculum — ${product.name}`,
+  ctaText, ctaLabel,
 }: DynamicCurriculumMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "View Course Details";
   const btnRadius = product.buttonRadius === "full" ? "9999px" : product.buttonRadius === "md" ? "6px" : "0px";
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
@@ -40,7 +44,7 @@ export default function DynamicCurriculumMail({
         <Button href={link} style={{
           backgroundColor: product.accentColor, color: product.buttonTextColor,
           padding: "12px 28px", borderRadius: btnRadius, fontSize: "13px", fontWeight: "600",
-        }}>View Course Details</Button>
+        }}>{actionText}</Button>
       </Section>
 
       {pdfUrl && (
