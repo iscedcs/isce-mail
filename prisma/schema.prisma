@@ -160,7 +160,7 @@ model Campaign {
   message         String   @db.Text
   link            String?
   templateProps   Json?
-  status          String   @default("draft") // "draft" | "sending" | "completed" | "scheduled" | "cancelled"
+  status          String   @default("draft") // "draft" | "sending" | "completed" | "scheduled" | "cancelled" | "failed"
   totalRecipients Int      @default(0)
   sentCount       Int      @default(0)
   deliveredCount  Int      @default(0)
@@ -191,7 +191,7 @@ model CampaignRecipient {
   firstName     String?
   batchNumber   Int       @default(1)
   scheduledFor  DateTime?
-  status        String    @default("pending") // "pending" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "suppressed"
+  status        String    @default("pending") // "pending" | "scheduled" | "sending" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "suppressed" | "failed" | "cancelled"
   resendEmailId String?
   bounceReason  String?
   sentAt        DateTime?
