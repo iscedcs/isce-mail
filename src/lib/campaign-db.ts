@@ -219,15 +219,33 @@ export async function createCampaignWithBatches(
   let batch1SentCount = 0;
   if (!isFutureScheduled) {
     const batch1 = batches[0];
-    const dispatchResult = await dispatchEmail(
-      params.type,
-      params.basis,
-      params.subject,
-      params.message,
-      params.link,
-      params.templateProps,
-      batch1.recipients,
-    );
+
+    let dispatchResult: Awaited<ReturnType<typeof dispatchEmail>>;
+    try {
+      dispatchResult = await dispatchEmail(
+        params.type,
+        params.basis,
+        params.subject,
+        params.message,
+        params.link,
+        params.templateProps,
+        batch1.recipients,
+      );
+    } catch (dispatchErr) {
+      // Revert Batch 1 recipients to "scheduled" (scheduledFor = now) so the scheduler
+      // can retry on the next tick. Without this, any throw (e.g. decryption error,
+      // Resend network failure) leaves recipients stuck in "sending" forever.
+      console.error("[campaign-db] Batch 1 immediate dispatch failed — reverting to scheduled:", dispatchErr);
+      await prisma.campaignRecipient.updateMany({
+        where: { campaignId, batchNumber: 1, status: "sending", resendEmailId: null },
+        data: { status: "scheduled", scheduledFor: new Date() },
+      });
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: { status: "scheduled" },
+      });
+      throw dispatchErr;
+    }
 
     batch1SentCount = dispatchResult.sent;
     batch1.sentAt = new Date().toISOString();
