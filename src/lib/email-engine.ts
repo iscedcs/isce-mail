@@ -13,6 +13,7 @@
 
 import React from "react";
 import { renderAsync } from "@react-email/render";
+import { prisma } from "@/lib/prisma";
 import type { ResolvedProduct } from "@/lib/product-resolver";
 import { getResendForProduct, getSenderForProduct } from "@/lib/product-resolver";
 import {
@@ -27,6 +28,92 @@ import {
   isValidTemplateType,
   type DynamicTemplateBaseProps,
 } from "@emails/templates/dynamic";
+
+// ---------------------------------------------------------------------------
+// Template DB Defaults Resolver
+// ---------------------------------------------------------------------------
+
+/**
+ * Automatically resolve template props with fallbacks from the database `EmailTemplate`
+ * for the given product and template type.
+ *
+ * This ensures that custom button labels (e.g. "Content Creation Masterclass" for PalmTechniq),
+ * banner images, preview text, and custom props defined in the Admin Console automatically
+ * manifest in sent emails and live previews without requiring callers to specify them manually.
+ */
+export async function resolveTemplatePropsWithDbDefaults(
+  productId: string,
+  templateType: string,
+  userProps: Record<string, unknown> = {},
+): Promise<Record<string, unknown>> {
+  let dbDefaults: Record<string, unknown> = {};
+
+  try {
+    const tpl = await prisma.emailTemplate.findFirst({
+      where: {
+        productId,
+        type: templateType,
+        isActive: true,
+      },
+    });
+
+    if (tpl) {
+      dbDefaults = {
+        ctaLabel: tpl.defaultCtaLabel || undefined,
+        ctaText: tpl.defaultCtaLabel || undefined,
+        link: tpl.defaultCtaUrl || undefined,
+        bannerImage: tpl.defaultBanner || undefined,
+        image: tpl.defaultBanner || undefined,
+        previewText: tpl.previewText || undefined,
+        ...((tpl.customProps as Record<string, unknown>) || {}),
+      };
+    }
+  } catch (err) {
+    console.warn(
+      `[email-engine] Could not load template defaults for product ${productId}, type ${templateType}:`,
+      err,
+    );
+  }
+
+  // Filter out undefined, null, or empty string values from dbDefaults
+  const cleanDbDefaults: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(dbDefaults)) {
+    if (v !== undefined && v !== null && v !== "") {
+      cleanDbDefaults[k] = v;
+    }
+  }
+
+  // Filter out undefined, null, or empty string values from userProps
+  const cleanUserProps: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(userProps)) {
+    if (v !== undefined && v !== null && v !== "") {
+      cleanUserProps[k] = v;
+    }
+  }
+
+  // Explicit user props override db defaults
+  const merged = {
+    ...cleanDbDefaults,
+    ...cleanUserProps,
+  };
+
+  // Cross-alias synchronization:
+  // 1. CTA label / text synchronization
+  const resolvedCta = merged.ctaText || merged.ctaLabel;
+  if (resolvedCta) {
+    merged.ctaText = resolvedCta;
+    merged.ctaLabel = resolvedCta;
+  }
+
+  // 2. Banner image / image synchronization
+  const resolvedImage = merged.bannerImage || merged.image;
+  if (resolvedImage) {
+    merged.bannerImage = resolvedImage;
+    merged.image = resolvedImage;
+  }
+
+  return merged;
+}
 
 // ---------------------------------------------------------------------------
 // Main dispatch function
@@ -57,6 +144,12 @@ export async function renderAndSendBatch(
     );
   }
 
+  const effectiveProps = await resolveTemplatePropsWithDbDefaults(
+    product.id,
+    templateType,
+    templateProps,
+  );
+
   const TemplateComponent = TEMPLATE_REGISTRY[templateType];
   const resend = getResendForProduct(product);
   const from = getSenderForProduct(product);
@@ -70,7 +163,7 @@ export async function renderAndSendBatch(
       react: TemplateComponent({
         product,
         message: personalizedMessage,
-        ...templateProps,
+        ...effectiveProps,
       } as DynamicTemplateBaseProps & Record<string, unknown>) as React.ReactElement,
     };
   });
@@ -104,6 +197,12 @@ export async function renderEmailPreview(
     );
   }
 
+  const effectiveProps = await resolveTemplatePropsWithDbDefaults(
+    product.id,
+    templateType,
+    previewData,
+  );
+
   const TemplateComponent = TEMPLATE_REGISTRY[templateType];
   const dummyRecipient: BatchRecipient = {
     email: "preview@example.com",
@@ -111,13 +210,13 @@ export async function renderEmailPreview(
     url: "",
   };
 
-  const rawMessage = (previewData.message as string) ?? "";
+  const rawMessage = (effectiveProps.message as string) || (previewData.message as string) || "";
   const personalizedMessage = interpolate(rawMessage, dummyRecipient);
 
   const element = TemplateComponent({
     product,
     message: personalizedMessage,
-    ...previewData,
+    ...effectiveProps,
   } as DynamicTemplateBaseProps & Record<string, unknown>) as React.ReactElement;
 
   return renderAsync(element);

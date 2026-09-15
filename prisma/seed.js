@@ -39,7 +39,7 @@ loadEnv();
 
 function encryptSecret(plaintext) {
   if (!plaintext) return plaintext;
-  const rawKey = process.env.ENCRYPTION_KEY || "ec1ba3bedea8bbb4efd196202ac0d0f4a4cd4b0638fb7bbc914edb4292084a0d";
+  const rawKey = process.env.ENCRYPTION_KEY || "3ffc6b1e414cd5b5bcc4c258f0b11365f439952778ec243af7480ec480983723";
   const key = Buffer.from(rawKey, "hex");
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv, { authTagLength: 16 });

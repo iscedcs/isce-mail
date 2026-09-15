@@ -24,6 +24,7 @@ export interface IPromotionsForm {
   image: string;
   emails: string;
   link: string;
+  ctaText?: string;
 }
 
 export default function PromotionForm() {
@@ -40,6 +41,7 @@ export default function PromotionForm() {
     image: "",
     emails: "",
     link: "",
+    ctaText: "",
   });
 
   const { restoreDraft, discardDraft } = useDraftAutosave(
@@ -84,6 +86,11 @@ export default function PromotionForm() {
       message: form.message,
       link: form.link,
       image: form.image,
+      templateProps: {
+        image: form.image,
+        ctaText: form.ctaText?.trim() || undefined,
+        ctaLabel: form.ctaText?.trim() || undefined,
+      },
       recipients: recipientList,
     });
 
@@ -105,6 +112,11 @@ export default function PromotionForm() {
       message: form.message,
       link: form.link,
       image: form.image,
+      templateProps: {
+        image: form.image,
+        ctaText: form.ctaText?.trim() || undefined,
+        ctaLabel: form.ctaText?.trim() || undefined,
+      },
       recipients: recipientList,
       scheduledFor,
     });
@@ -121,6 +133,7 @@ export default function PromotionForm() {
       image: "",
       emails: "",
       link: "",
+      ctaText: "",
     });
     setEditorContent("");
     setCsvContent("");
@@ -229,6 +242,34 @@ export default function PromotionForm() {
           />
         </div>
         <div className="space-y-2">
+          <Label className="flex gap-1.5 items-center" htmlFor="ctaText">
+            CTA Button Label (Optional){" "}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircleIcon className="w-4 h-4 text-[#333] cursor-pointer " />{" "}
+                </TooltipTrigger>
+                <TooltipContent className=" bg-white border  w-[60%] text-center mx-auto text-[13px] p-[10px] rounded-lg border-[#b5b5b5] ">
+                  <p>
+                    Leave blank to use the template default (e.g. Content Creation Masterclass, Shop Now).
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            onChange={(e) => {
+              setForm({
+                ...form,
+                ctaText: e.target.value,
+              });
+            }}
+            id="ctaText"
+            placeholder="e.g. Join the Masterclass, Shop Now"
+            value={form.ctaText || ""}
+          />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="message">Message - Editor</Label>
           <Editor
             defaultValue={(form.message = editorContent)}
@@ -317,7 +358,13 @@ export default function PromotionForm() {
         <PreviewButton
           type="promotion"
           basis={form.basis}
-          data={{ message: form.message, link: form.link, image: form.image }}
+          data={{
+            message: form.message,
+            link: form.link,
+            image: form.image,
+            ctaText: form.ctaText?.trim() || undefined,
+            ctaLabel: form.ctaText?.trim() || undefined,
+          }}
         />
         <Button
           type="button"

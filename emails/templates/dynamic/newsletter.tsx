@@ -10,6 +10,8 @@ export interface DynamicNewsletterMailProps {
   link?: string;
   image?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicNewsletterMail({
@@ -18,8 +20,12 @@ export default function DynamicNewsletterMail({
   link,
   image,
   previewText = `${product.name} Newsletter`,
+  ctaText,
+  ctaLabel,
 }: DynamicNewsletterMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Read More";
+
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
       {image && (
@@ -46,7 +52,7 @@ export default function DynamicNewsletterMail({
               fontWeight: "600",
             }}
           >
-            Read More
+            {actionText}
           </Button>
         </Section>
       )}

@@ -14,13 +14,17 @@ export interface DynamicCoursePromoMailProps {
   deadline?: string;
   bannerImage?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
 }
 
 export default function DynamicCoursePromoMail({
   product, message, courseName, link, price, originalPrice, deadline, bannerImage,
   previewText = `Limited offer: ${courseName} — ${product.name}`,
+  ctaText, ctaLabel,
 }: DynamicCoursePromoMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Enroll Now";
   const btnRadius = product.buttonRadius === "full" ? "9999px" : product.buttonRadius === "md" ? "6px" : "0px";
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
@@ -55,7 +59,7 @@ export default function DynamicCoursePromoMail({
         <Button href={link} style={{
           backgroundColor: product.accentColor, color: product.buttonTextColor,
           padding: "12px 32px", borderRadius: btnRadius, fontSize: "14px", fontWeight: "700",
-        }}>Enroll Now</Button>
+        }}>{actionText}</Button>
       </Section>
     </BrandedEmailShell>
   );

@@ -14,13 +14,18 @@ export interface DynamicCohortWelcomeMailProps {
   link: string;
   bannerImage?: string;
   previewText?: string;
+  ctaText?: string;
+  ctaLabel?: string;
+  communityCtaText?: string;
 }
 
 export default function DynamicCohortWelcomeMail({
   product, message, cohortName, startDate, mentorName, communityLink, link, bannerImage,
   previewText = `Welcome to ${cohortName} — ${product.name}`,
+  ctaText, ctaLabel, communityCtaText = "Join Community",
 }: DynamicCohortWelcomeMailProps) {
   const sanitizedHTML = parse(message);
+  const actionText = ctaText || ctaLabel || "Access Your Dashboard";
   const btnRadius = product.buttonRadius === "full" ? "9999px" : product.buttonRadius === "md" ? "6px" : "0px";
   return (
     <BrandedEmailShell product={product} previewText={previewText}>
@@ -57,14 +62,14 @@ export default function DynamicCohortWelcomeMail({
         <Button href={link} style={{
           backgroundColor: product.accentColor, color: product.buttonTextColor,
           padding: "12px 28px", borderRadius: btnRadius, fontSize: "13px", fontWeight: "600",
-        }}>Access Your Dashboard</Button>
+        }}>{actionText}</Button>
       </Section>
       <Section style={{ textAlign: "center", paddingBottom: "32px" }}>
         <Button href={communityLink} style={{
           backgroundColor: "transparent", color: product.accentColor,
           border: `2px solid ${product.accentColor}`,
           padding: "10px 28px", borderRadius: btnRadius, fontSize: "13px", fontWeight: "600",
-        }}>Join Community</Button>
+        }}>{communityCtaText}</Button>
       </Section>
     </BrandedEmailShell>
   );
