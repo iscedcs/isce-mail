@@ -48,7 +48,11 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
       const dueBatches = await prisma.campaignRecipient.findMany({
         where: {
           status: { in: ["pending", "scheduled"] },
-          scheduledFor: { lte: now },
+          // Dispatch batches that are due OR have no scheduledFor (Batch 1 "Send Now" that got stuck)
+          OR: [
+            { scheduledFor: { lte: now } },
+            { scheduledFor: null },
+          ],
         },
         select: {
           campaignId: true,
