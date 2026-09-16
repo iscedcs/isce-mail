@@ -4,10 +4,17 @@ import {
   listCampaignsFromDb,
 } from "@/lib/campaign-db";
 import { listCampaigns } from "@/lib/campaigns";
+import { checkAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!checkAdminAuth(req)) {
+    return NextResponse.json(
+      { error: "Unauthorized: Admin authentication required to view campaigns." },
+      { status: 401 },
+    );
+  }
   try {
     const campaigns = await listCampaignsFromDb();
     return NextResponse.json(campaigns);

@@ -5,6 +5,9 @@ import type { EmailEvent } from "@/lib/email-events";
 import type { Campaign } from "@/lib/campaigns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminLogin } from "@/components/admin/admin-login";
+import { getAdminSessionAction } from "@/actions/admin-auth";
 import {
   Table,
   TableBody,
@@ -95,6 +98,10 @@ function pct(num: number, denom: number) {
 type Tab = "campaigns" | "scheduled" | "audience" | "events" | "jobs";
 
 export default function DashboardPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ username: string; role?: string } | null>(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
   const [tab, setTab] = useState<Tab>("campaigns");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -105,6 +112,25 @@ export default function DashboardPage() {
   const [selectedBatch, setSelectedBatch] = useState<number | "all">("all");
   const [dispatchingBatch, setDispatchingBatch] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Check admin session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        setAuthChecking(true);
+        const data = await getAdminSessionAction();
+        if (data.authenticated && data.user) {
+          setIsAuthenticated(true);
+          setCurrentUser(data.user);
+        }
+      } catch (err) {
+        console.error("Session check failed:", err);
+      } finally {
+        setAuthChecking(false);
+      }
+    };
+    checkSession();
+  }, []);
 
   const fetchAll = useCallback(() => {
     setLoading(true);
@@ -126,10 +152,11 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchAll();
     const interval = setInterval(fetchAll, 15_000);
     return () => clearInterval(interval);
-  }, [fetchAll]);
+  }, [fetchAll, isAuthenticated]);
 
   const openAudience = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
@@ -252,8 +279,44 @@ export default function DashboardPage() {
     (c) => c.status === "sent" || c.status === "sending" || c.status === "completed" || c.status === "failed",
   );
 
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <LoaderCircle className="h-8 w-8 animate-spin text-slate-400" />
+          <p className="text-sm text-slate-500 font-medium">Verifying admin session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50/50 flex flex-col">
+        <AdminHeader />
+        <AdminLogin
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+            fetchAll();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col">
+      <AdminHeader
+        currentUser={currentUser}
+        onLogout={() => {
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+        }}
+        onRefresh={fetchAll}
+        isRefreshing={loading}
+      />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -1048,6 +1111,7 @@ export default function DashboardPage() {
           )}
         </>
       )}
+      </main>
     </div>
   );
 }

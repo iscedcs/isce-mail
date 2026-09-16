@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCampaignBatchesFromDb, cancelCampaignInDb } from "@/lib/campaign-db";
 import { getCampaign, cancelCampaign } from "@/lib/campaigns";
+import { checkAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  if (!checkAdminAuth(req)) {
+    return NextResponse.json(
+      { error: "Unauthorized: Admin authentication required." },
+      { status: 401 },
+    );
+  }
   try {
     const dbResult = await getCampaignBatchesFromDb(params.id);
     if (dbResult) {
@@ -25,9 +32,15 @@ export async function GET(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  if (!checkAdminAuth(req)) {
+    return NextResponse.json(
+      { error: "Unauthorized: Admin authentication required to cancel campaigns." },
+      { status: 401 },
+    );
+  }
   try {
     await cancelCampaignInDb(params.id);
   } catch (err) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dispatchScheduledBatch } from "@/lib/campaign-db";
 import { prisma } from "@/lib/prisma";
+import { checkAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,12 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  if (!checkAdminAuth(req)) {
+    return NextResponse.json(
+      { error: "Unauthorized: Admin authentication required to dispatch batches." },
+      { status: 401 },
+    );
+  }
   try {
     const body = await req.json().catch(() => ({}));
     const batchNumber = Number(body.batchNumber) || 1;
