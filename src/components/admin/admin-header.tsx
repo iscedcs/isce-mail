@@ -10,6 +10,7 @@ import {
   RefreshCw,
   LogOut,
   Shield,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,12 @@ export function AdminHeader({
   };
 
   const navItems = [
+    {
+      label: "Campaigns & Insights",
+      href: "/history",
+      icon: BarChart3,
+      active: pathname === "/history",
+    },
     {
       label: "Products & Brands",
       href: "/admin/products",
