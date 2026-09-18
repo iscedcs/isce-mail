@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveProduct } from "@/lib/product-resolver";
 import { renderEmailPreview } from "@/lib/email-engine";
-import { render } from "@react-email/render";
+import { render } from "@react-email/components";
 
 export const dynamic = "force-dynamic";
 
