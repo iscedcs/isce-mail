@@ -48,6 +48,11 @@ model Product {
   //   socialLayout="left", socialIconSize=18
   emailLayout Json?
 
+  // Plan Tier & Sending Quotas
+  // "free" = 100/day, "starter" = 500/day, "growth" = 2500/day, "enterprise" = 10000/day, "custom" = custom dailyQuota
+  planTier   String @default("free")
+  dailyQuota Int    @default(100)
+
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -235,6 +240,8 @@ model AdminUser {
   role             String    @default("admin") // "super_admin" | "admin"
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
+  twoFactorCode    String?
+  twoFactorExpiry  DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

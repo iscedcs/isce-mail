@@ -1,20 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
-import { Shield, Lock, User, Eye, EyeOff, Loader2, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  Shield,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Loader2,
+  ArrowLeft,
+  Mail,
+  CheckCircle2,
+  KeyRound,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { toast } from "sonner";
-import { loginAdminAction, requestPasswordResetAction } from "@/actions/admin-auth";
+import {
+  loginAdminAction,
+  requestPasswordResetAction,
+  verifyTwoFactorAction,
+  resendTwoFactorAction,
+} from "@/actions/admin-auth";
 
 interface AdminLoginProps {
   onLoginSuccess: (user: { username: string; role: string; email?: string }) => void;
 }
 
 export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "forgot" | "2fa">("login");
 
   // Login form state
   const [username, setUsername] = useState("");
@@ -23,11 +47,29 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // 2FA state
+  const [tempToken, setTempToken] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   // Forgot password form state
   const [resetQuery, setResetQuery] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccessMsg, setResetSuccessMsg] = useState("");
   const [resetErrorMsg, setResetErrorMsg] = useState("");
+
+  // Cooldown countdown timer for 2FA resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,23 +82,85 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       setIsLoading(true);
       setErrorMsg("");
 
-      // Direct Server Action call (No /api/ route)
       const res = await loginAdminAction({
         username: username.trim(),
         password: password.trim(),
       });
 
-      if (!res.success || !res.user) {
+      if (!res.success) {
         throw new Error(res.error || "Invalid username or password.");
       }
 
-      toast.success(`Welcome back, ${res.user.username}!`);
-      onLoginSuccess(res.user);
+      // Step 2: If 2FA is required, transition to 2FA verification mode
+      if (res.requires2FA) {
+        setTempToken(res.tempToken || "");
+        setMaskedEmail(res.maskedEmail || "your administrator email");
+        setTwoFactorCode("");
+        setTwoFactorError("");
+        setMode("2fa");
+        setResendCooldown(60);
+        toast.info("A 6-digit verification code has been dispatched to your email.");
+        return;
+      }
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to authenticate.");
       toast.error(err.message || "Authentication failed.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const triggerVerifyCode = async (codeToVerify: string) => {
+    if (codeToVerify.length !== 6 || twoFactorLoading) return;
+    try {
+      setTwoFactorLoading(true);
+      setTwoFactorError("");
+
+      const res = await verifyTwoFactorAction({
+        tempToken,
+        code: codeToVerify,
+      });
+
+      if (!res.success || !res.user) {
+        throw new Error(res.error || "Invalid verification code.");
+      }
+
+      toast.success(`Identity verified! Welcome back, ${res.user.username}!`);
+      onLoginSuccess(res.user);
+    } catch (err: any) {
+      setTwoFactorError(err.message || "Failed to verify code.");
+      toast.error(err.message || "Verification failed.");
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleVerifyTwoFactor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await triggerVerifyCode(twoFactorCode);
+  };
+
+  const handleResendTwoFactor = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+    try {
+      setResendLoading(true);
+      setTwoFactorError("");
+
+      const res = await resendTwoFactorAction({ tempToken });
+      if (!res.success) {
+        throw new Error(res.error || "Failed to resend code.");
+      }
+
+      if (res.tempToken) {
+        setTempToken(res.tempToken);
+      }
+      setResendCooldown(60);
+      toast.success(res.message || "Verification code resent!");
+    } catch (err: any) {
+      setTwoFactorError(err.message || "Could not resend code.");
+      toast.error(err.message || "Resend failed.");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -72,14 +176,15 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       setResetErrorMsg("");
       setResetSuccessMsg("");
 
-      // Direct Server Action call (dispatches email using ISCE_RESEND_API_KEY)
       const res = await requestPasswordResetAction(resetQuery.trim());
 
       if (!res.success) {
         throw new Error(res.error || "Failed to dispatch reset email.");
       }
 
-      setResetSuccessMsg(res.message || "Password reset instructions have been sent to your email.");
+      setResetSuccessMsg(
+        res.message || "Password reset instructions have been sent to your email.",
+      );
       toast.success("Reset link dispatched!");
     } catch (err: any) {
       setResetErrorMsg(err.message || "Could not process password reset.");
@@ -89,6 +194,121 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     }
   };
 
+  // -------------------------------------------------------------------------
+  // 2FA Verification View
+  // -------------------------------------------------------------------------
+  if (mode === "2fa") {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-xl border-slate-200/80 bg-white">
+          <CardHeader className="text-center space-y-2 pb-6">
+            <div className="mx-auto h-12 w-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+              <KeyRound className="h-6 w-6 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
+              Two-Factor Authentication
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+              We sent a 6-digit verification code to{" "}
+              <strong className="text-slate-800">{maskedEmail}</strong>. Enter it below to complete sign-in.
+            </CardDescription>
+          </CardHeader>
+
+          <form onSubmit={handleVerifyTwoFactor}>
+            <CardContent className="space-y-4">
+              {twoFactorError && (
+                <div className="p-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                  <span className="font-semibold">Error:</span> {twoFactorError}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="two-factor-code"
+                  className="text-xs font-semibold text-slate-700 block text-center"
+                >
+                  Enter 6-Digit Code
+                </Label>
+                <div className="relative flex justify-center">
+                  <Input
+                    id="two-factor-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="••••••"
+                    value={twoFactorCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      setTwoFactorCode(val);
+                      if (val.length === 6) {
+                        triggerVerifyCode(val);
+                      }
+                    }}
+                    className="h-14 text-center text-2xl font-extrabold tracking-[10px] sm:tracking-[14px] font-mono border-2 border-slate-300 focus:border-indigo-600 focus:ring-indigo-500 max-w-[280px] rounded-xl shadow-xs"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <p className="text-[11px] text-center text-slate-400">
+                  Security code expires in 10 minutes.
+                </p>
+              </div>
+            </CardContent>
+
+            <CardFooter className="pt-2 pb-6 flex flex-col gap-3">
+              <Button
+                type="submit"
+                disabled={twoFactorLoading || twoFactorCode.length !== 6}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs h-10 rounded-xl"
+              >
+                {twoFactorLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Verifying Identity...
+                  </>
+                ) : (
+                  "Verify & Complete Sign In"
+                )}
+              </Button>
+
+              <div className="flex items-center justify-between w-full pt-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("login");
+                    setTwoFactorCode("");
+                    setTwoFactorError("");
+                  }}
+                  className="text-slate-500 hover:text-slate-900 flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Back to Login
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendTwoFactor}
+                  disabled={resendCooldown > 0 || resendLoading}
+                  className="text-indigo-600 hover:text-indigo-800 font-semibold disabled:text-slate-400 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <RotateCcw
+                    className={`h-3 w-3 ${resendLoading ? "animate-spin" : ""}`}
+                  />
+                  {resendCooldown > 0
+                    ? `Resend code in ${resendCooldown}s`
+                    : "Resend Code"}
+                </button>
+              </div>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Forgot Password View
+  // -------------------------------------------------------------------------
   if (mode === "forgot") {
     return (
       <div className="min-h-[75vh] flex items-center justify-center p-4">
@@ -177,6 +397,9 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     );
   }
 
+  // -------------------------------------------------------------------------
+  // Main Login View
+  // -------------------------------------------------------------------------
   return (
     <div className="min-h-[75vh] flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl border-slate-200/80 bg-white">
@@ -188,7 +411,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             Admin Console Login
           </CardTitle>
           <CardDescription className="text-xs text-slate-500 max-w-xs mx-auto">
-            Enter your credentials to manage brands, API keys, email templates, and layouts.
+            Enter your credentials. A secure 2FA verification code will be sent to your administrator email.
           </CardDescription>
         </CardHeader>
 
@@ -263,20 +486,21 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs h-10 rounded-xl"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Signing In...
+                  Verifying Credentials...
                 </>
               ) : (
-                "Sign In to Admin Dashboard"
+                "Continue with Two-Factor Auth"
               )}
             </Button>
-            <p className="text-[11px] text-center text-slate-400">
-              Session is encrypted and protected with HTTP-only cookies.
-            </p>
+            <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400">
+              <Shield className="w-3 h-3 text-emerald-600" />
+              <span>Two-Factor Authentication Protected</span>
+            </div>
           </CardFooter>
         </form>
       </Card>

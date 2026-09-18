@@ -13,7 +13,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const job = getJob(params.id);
+  const { id } = params;
+  const job = getJob(id);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
@@ -26,7 +27,7 @@ export async function POST(
     ? body.recipients
     : parseEmailString(body.emails ?? "");
 
-  updateJob(params.id, { status: "running" });
+  updateJob(id, { status: "running" });
 
   try {
     const result = await sendBulkEmailTracked(
@@ -42,7 +43,7 @@ export async function POST(
       body.bannerImage,
     );
 
-    updateJob(params.id, {
+    updateJob(id, {
       status: "done",
       sent: result.sent,
       failed: result.failed,
@@ -56,7 +57,7 @@ export async function POST(
       recipientCount: result.sent,
     });
   } catch (err) {
-    updateJob(params.id, {
+    updateJob(id, {
       status: "failed",
       error: err instanceof Error ? err.message : "Unknown error",
       completedAt: new Date().toISOString(),

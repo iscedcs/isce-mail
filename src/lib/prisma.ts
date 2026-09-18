@@ -13,12 +13,13 @@ function getPrismaClient(): PrismaClient {
     return globalForPrisma.prismaClient;
   }
 
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
+  const rawUrl = process.env.DATABASE_URL;
+  if (!rawUrl) {
     throw new Error(
       "DATABASE_URL environment variable is not set. Please ensure DATABASE_URL is configured in your .env or Vercel project settings.",
     );
   }
+  const connectionString = rawUrl.replace(/^['"]|['"]$/g, "").trim();
 
   const adapter = new PrismaNeon({ connectionString });
   const client = new PrismaClient({

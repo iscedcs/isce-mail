@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/crypto";
-import { listActiveProducts, invalidateProductCache } from "@/lib/product-resolver";
+import { listActiveProducts, invalidateProductCache, PLAN_TIER_QUOTAS } from "@/lib/product-resolver";
 import { checkAdminAuth } from "@/lib/admin-auth";
 import { Resend } from "resend";
 
@@ -49,7 +49,16 @@ const DEFAULT_TEMPLATES = [
 export async function GET() {
   try {
     const products = await listActiveProducts();
-    return NextResponse.json({ success: true, products });
+    return NextResponse.json(
+      { success: true, products },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      },
+    );
   } catch (err: any) {
     console.error("[api/products] GET failed:", err);
     return NextResponse.json(
@@ -91,6 +100,8 @@ export async function POST(req: NextRequest) {
       socialLinks,
       syncUrl,
       syncApiKey,
+      planTier = "free",
+      dailyQuota,
     } = body;
 
     // Required field validation
@@ -191,6 +202,8 @@ export async function POST(req: NextRequest) {
         socialLinks: socialLinks || undefined,
         syncUrl: syncUrl?.trim() || null,
         syncApiKey: encryptedSyncKey,
+        planTier: planTier || "free",
+        dailyQuota: dailyQuota ? Number(dailyQuota) : (PLAN_TIER_QUOTAS[planTier] || 100),
         isActive: true,
       },
     });

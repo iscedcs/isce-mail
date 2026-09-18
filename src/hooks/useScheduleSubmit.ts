@@ -56,10 +56,12 @@ export function useScheduleSubmit() {
 
       let message = isScheduled
         ? `Scheduled for ${new Date(payload.scheduledFor!).toLocaleString()} — ${payload.recipients.length} recipient(s).`
-        : `Dispatched to ${payload.recipients.length} recipient(s).`;
+        : `Dispatched to ${payload.recipients.length} recipient(s) (sending in background chunks).`;
 
       if (hasBatches && !isScheduled) {
-        message = `Batch 1 dispatched (${data.batch1SentCount || 100} sent today). ${data.batches.length - 1} scheduled batch(es) queued (100/day).`;
+        const batch1Count = data.batch1SentCount || (data.batches?.[0]?.count ?? 100);
+        const dailyRate = data.batches?.[0]?.count || 100;
+        message = `Batch 1 initiated (${batch1Count} sending today in background chunks). ${data.batches.length - 1} scheduled batch(es) queued (${dailyRate}/day).`;
       }
 
       if (data.excludedCount && data.excludedCount > 0) {

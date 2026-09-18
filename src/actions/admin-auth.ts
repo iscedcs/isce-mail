@@ -19,8 +19,143 @@ import {
   createAdminToken,
   verifyAdminToken,
 } from "@/lib/admin-auth";
+import { encrypt, decrypt } from "@/lib/crypto";
+import { resolveProduct } from "@/lib/product-resolver";
 
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+/**
+ * Helper to mask an email for 2FA display (e.g. em***5@gmail.com)
+ */
+export async function maskEmailHelper(email: string): Promise<string> {
+  if (!email || !email.includes("@")) return "your administrator email";
+  const [local, domain] = email.split("@");
+  if (local.length <= 2) {
+    return `${local}***@${domain}`;
+  }
+  const visibleStart = local.slice(0, 2);
+  const visibleEnd = local.slice(-1);
+  return `${visibleStart}***${visibleEnd}@${domain}`;
+}
+
+/**
+ * Issue an encrypted temporary token for the 2FA verification step.
+ */
+function createTwoFactorTempToken(userId: string, username: string): string {
+  const payload = {
+    userId,
+    username,
+    purpose: "admin_2fa",
+    exp: Date.now() + 10 * 60 * 1000, // 10 minutes
+  };
+  return encrypt(JSON.stringify(payload));
+}
+
+/**
+ * Decrypt and verify a 2FA temporary token.
+ */
+function verifyTwoFactorTempToken(
+  token: string,
+): { userId: string; username: string } | null {
+  try {
+    const raw = decrypt(token);
+    const data = JSON.parse(raw);
+    if (data.purpose !== "admin_2fa" || !data.userId || Date.now() > data.exp) {
+      return null;
+    }
+    return { userId: data.userId, username: data.username };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Dispatch 2FA verification code to the administrator's email via Resend.
+ */
+async function sendTwoFactorEmail(
+  email: string,
+  username: string,
+  code: string,
+): Promise<void> {
+  let isceResendKey = (process.env.ISCE_RESEND_API_KEY || "").trim();
+  if (!isceResendKey) {
+    try {
+      const isce = await resolveProduct("isce");
+      if (isce?.resendApiKey) isceResendKey = isce.resendApiKey;
+    } catch {}
+  }
+
+  if (!isceResendKey) {
+    try {
+      const pt = await resolveProduct("palmtechniq");
+      if (pt?.resendApiKey) isceResendKey = pt.resendApiKey;
+    } catch {}
+  }
+
+  if (!isceResendKey) {
+    console.error(
+      "[sendTwoFactorEmail] No Resend API key configured for 2FA delivery.",
+    );
+    throw new Error(
+      "Email delivery service is unavailable (missing Resend API key).",
+    );
+  }
+
+  const resend = new Resend(isceResendKey);
+  const fromAddress = formatSenderAddress(process.env.FROM_EMAIL_ADDRESS);
+
+  const isceLogoUrl = "https://www.isce.tech/images/fi-white.webp";
+
+  const emailHtml = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px; background-color: #000000; color: #FFFFFF;">
+      <div style="background-color: #212121; border-radius: 16px; padding: 44px 32px; border: 1px solid #2e2e2e; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); text-align: center;">
+        <div style="margin-bottom: 28px;">
+          <img src="${isceLogoUrl}" alt="ISCE Logo" width="120" style="display: inline-block; max-width: 130px; height: auto; border: 0;" />
+        </div>
+        <h2 style="color: #FFFFFF; font-size: 22px; font-weight: 700; margin: 0 0 14px 0; letter-spacing: -0.5px;">
+          Admin Verification Code
+        </h2>
+        <p style="color: #D4D4D8; font-size: 14px; line-height: 24px; margin: 0 0 28px 0;">
+          Hello <strong style="color: #FFFFFF;">${username}</strong>,<br/>
+          Use the 6-digit verification code below to complete your administrator sign-in:
+        </p>
+        <div style="margin: 28px 0;">
+          <div style="display: inline-block; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #FFFFFF; padding: 18px 32px; background-color: #000000; border: 1px solid #383838; border-radius: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);">
+            ${code}
+          </div>
+        </div>
+        <p style="color: #A1A1AA; font-size: 13px; line-height: 20px; margin: 0 0 16px 0;">
+          This code expires in <strong style="color: #FFFFFF;">10 minutes</strong> and can only be used once.
+        </p>
+        <div style="border-top: 1px solid #2e2e2e; padding-top: 24px; margin-top: 32px; color: #71717A; font-size: 11px; line-height: 18px;">
+          <p style="margin: 0 0 6px 0;">If you did not request this code, please change your administrator password immediately.</p>
+          <p style="margin: 0; color: #A1A1AA; font-weight: 600;">ISCE Digital Concepts</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  console.log(
+    `[sendTwoFactorEmail] Sending 2FA code to "${email}" from "${fromAddress}"...`,
+  );
+  const sendRes = await resend.emails.send({
+    from: fromAddress,
+    to: email,
+    subject: `${code} is your ISCE Mail Admin Verification Code`,
+    html: emailHtml,
+  });
+
+  if (sendRes.error) {
+    console.error("[sendTwoFactorEmail] Resend error:", sendRes.error);
+    throw new Error(
+      sendRes.error.message || "Failed to deliver 2FA verification email.",
+    );
+  }
+  console.log(
+    `[sendTwoFactorEmail] Successfully dispatched 2FA email, Resend ID:`,
+    sendRes.data?.id,
+  );
+}
 
 /**
  * Hash password securely with crypto.scryptSync
@@ -166,11 +301,125 @@ export async function loginAdminAction(formData: {
       }
     }
 
-    // 4. Create encrypted token
+    // 4. Generate 6-digit OTP verification code & 10m expiry
+    const twoFactorCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
+    const twoFactorExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await prisma.adminUser.update({
+      where: { id: user.id },
+      data: {
+        twoFactorCode,
+        twoFactorExpiry,
+      },
+    });
+
+    const recipientEmail = (user.email || process.env.ADMIN_EMAIL || "").trim();
+    if (!recipientEmail) {
+      return {
+        success: false,
+        error:
+          "No administrator email address configured to receive verification codes.",
+      };
+    }
+
+    try {
+      await sendTwoFactorEmail(recipientEmail, user.username, twoFactorCode);
+    } catch (emailErr: any) {
+      console.error(
+        "[loginAdminAction] Failed to dispatch 2FA email:",
+        emailErr,
+      );
+      return {
+        success: false,
+        error:
+          emailErr?.message ||
+          "Failed to dispatch verification email. Please check Resend API key configuration.",
+      };
+    }
+
+    const tempToken = createTwoFactorTempToken(user.id, user.username);
+    const maskedEmail = await maskEmailHelper(recipientEmail);
+
+    return {
+      success: true,
+      requires2FA: true,
+      tempToken,
+      maskedEmail,
+    };
+  } catch (err: any) {
+    console.error("[loginAdminAction] Error:", err);
+    return {
+      success: false,
+      error: "Authentication failed. Please try again.",
+    };
+  }
+}
+
+/**
+ * SERVER ACTION: Verify 2FA Code & Finalize Login
+ */
+export async function verifyTwoFactorAction(formData: {
+  tempToken: string;
+  code: string;
+}) {
+  const { tempToken, code } = formData;
+
+  if (!tempToken?.trim() || !code?.trim()) {
+    return { success: false, error: "Verification code is required." };
+  }
+
+  const verified = verifyTwoFactorTempToken(tempToken.trim());
+  if (!verified) {
+    return {
+      success: false,
+      error: "Verification session expired. Please sign in again.",
+    };
+  }
+
+  try {
+    const user = await prisma.adminUser.findUnique({
+      where: { id: verified.userId },
+    });
+
+    if (!user || !user.twoFactorCode || !user.twoFactorExpiry) {
+      return {
+        success: false,
+        error: "No pending verification code found. Please sign in again.",
+      };
+    }
+
+    if (Date.now() > new Date(user.twoFactorExpiry).getTime()) {
+      return {
+        success: false,
+        error: "Verification code has expired. Please request a new code.",
+      };
+    }
+
+    const cleanEntered = code.trim().replace(/\s+/g, "");
+    if (cleanEntered !== user.twoFactorCode.trim()) {
+      return {
+        success: false,
+        error:
+          "Incorrect verification code. Please check your email and try again.",
+      };
+    }
+
+    // 2FA code is valid! Clear 2FA state from database
+    await prisma.adminUser.update({
+      where: { id: user.id },
+      data: {
+        twoFactorCode: null,
+        twoFactorExpiry: null,
+      },
+    });
+
+    // Create full encrypted session token
     const token = createAdminToken(user.username, user.role as any);
 
-    // 5. Set session cookie directly via next/headers
-    const cookieStore = cookies();
+    // Set HTTP-only session cookie
+    const cookieStore = await cookies();
     cookieStore.set(ADMIN_COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -188,10 +437,81 @@ export async function loginAdminAction(formData: {
       },
     };
   } catch (err: any) {
-    console.error("[loginAdminAction] Error:", err);
+    console.error("[verifyTwoFactorAction] Error:", err);
+    return { success: false, error: "Verification failed. Please try again." };
+  }
+}
+
+/**
+ * SERVER ACTION: Resend 2FA Code
+ */
+export async function resendTwoFactorAction(formData: { tempToken: string }) {
+  const { tempToken } = formData;
+
+  if (!tempToken?.trim()) {
     return {
       success: false,
-      error: "Authentication failed. Please try again.",
+      error: "Verification session expired. Please sign in again.",
+    };
+  }
+
+  const verified = verifyTwoFactorTempToken(tempToken.trim());
+  if (!verified) {
+    return {
+      success: false,
+      error: "Verification session expired. Please sign in again.",
+    };
+  }
+
+  try {
+    const user = await prisma.adminUser.findUnique({
+      where: { id: verified.userId },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Administrator account not found. Please sign in again.",
+      };
+    }
+
+    const recipientEmail = (user.email || process.env.ADMIN_EMAIL || "").trim();
+    if (!recipientEmail) {
+      return {
+        success: false,
+        error: "No administrator email address configured.",
+      };
+    }
+
+    // Generate fresh 6-digit code & 10m expiry
+    const twoFactorCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
+    const twoFactorExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    await prisma.adminUser.update({
+      where: { id: user.id },
+      data: {
+        twoFactorCode,
+        twoFactorExpiry,
+      },
+    });
+
+    await sendTwoFactorEmail(recipientEmail, user.username, twoFactorCode);
+
+    const newTempToken = createTwoFactorTempToken(user.id, user.username);
+    const maskedEmail = await maskEmailHelper(recipientEmail);
+
+    return {
+      success: true,
+      tempToken: newTempToken,
+      message: `A new 6-digit verification code has been dispatched to ${maskedEmail}.`,
+    };
+  } catch (err: any) {
+    console.error("[resendTwoFactorAction] Error:", err);
+    return {
+      success: false,
+      error: "Failed to resend verification code. Please try again.",
     };
   }
 }
@@ -201,7 +521,7 @@ export async function loginAdminAction(formData: {
  */
 export async function logoutAdminAction() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set(ADMIN_COOKIE_NAME, "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -221,7 +541,7 @@ export async function logoutAdminAction() {
  */
 export async function getAdminSessionAction() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
 
     if (!token) {
@@ -488,7 +808,7 @@ export async function resetPasswordAction(formData: {
 
     // 4. Log the user in immediately by setting cookie
     const sessionToken = createAdminToken(user.username, user.role as any);
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set(ADMIN_COOKIE_NAME, sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

@@ -51,7 +51,16 @@ export type ResolvedProduct = {
   syncApiKey: string | null;
   /** Per-product email shell layout configuration. */
   emailLayout: EmailLayout | null;
+  planTier: string;
+  dailyQuota: number;
   isActive: boolean;
+};
+
+export const PLAN_TIER_QUOTAS: Record<string, number> = {
+  free: 100,
+  starter: 500,
+  growth: 2500,
+  enterprise: 10000,
 };
 
 // ---------------------------------------------------------------------------
@@ -63,7 +72,7 @@ type CacheEntry = {
   expiresAt: number;
 };
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 15 * 1000; // 15 seconds (keeps product tiers fresh while debouncing burst calls)
 
 const productCache = new Map<string, CacheEntry>();
 
@@ -174,6 +183,8 @@ export async function resolveProduct(slugOrBasis: string): Promise<ResolvedProdu
       syncUrl: dbProduct.syncUrl,
       syncApiKey: dbProduct.syncApiKey ? decrypt(dbProduct.syncApiKey) : null,
       emailLayout: (dbProduct.emailLayout as EmailLayout) ?? null,
+      planTier: (dbProduct as any).planTier ?? "growth",
+      dailyQuota: (dbProduct as any).dailyQuota ?? 2500,
       isActive: dbProduct.isActive,
     };
 
@@ -234,6 +245,8 @@ export async function resolveProduct(slugOrBasis: string): Promise<ResolvedProdu
         slug === "palmtechniq"
           ? { headerStyle: "logo-banner", footerStyle: "light", socialLayout: "center", socialIconSize: 23 }
           : null,
+      planTier: "growth",
+      dailyQuota: 2500,
       isActive: true,
     };
 
@@ -287,6 +300,8 @@ export async function listActiveProducts() {
       address: true,
       socialLinks: true,
       syncUrl: true,
+      planTier: true,
+      dailyQuota: true,
       isActive: true,
       createdAt: true,
       // Intentionally excluded: resendApiKey, webhookSecret, syncApiKey

@@ -9,7 +9,6 @@ const nextConfig = {
   experimental: {
     instrumentationHook: true,
   },
-
   webpack(config) {
     // Add @emails alias so email templates can be imported from anywhere
     config.resolve.alias["@emails"] = path.resolve(__dirname, "emails");

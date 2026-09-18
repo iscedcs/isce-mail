@@ -9,16 +9,17 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { slug: string } },
 ) {
+  const { slug: rawSlug } = params;
   try {
-    const slug = params.slug.toLowerCase();
+    const slug = rawSlug.toLowerCase();
     const product = await prisma.product.findFirst({
-      where: { OR: [{ slug }, { slug: params.slug }] },
+      where: { OR: [{ slug }, { slug: rawSlug }] },
       select: { id: true, name: true, slug: true },
     });
 
     if (!product) {
       return NextResponse.json(
-        { success: false, error: `Product "${params.slug}" not found.` },
+        { success: false, error: `Product "${rawSlug}" not found.` },
         { status: 404 },
       );
     }
@@ -34,7 +35,7 @@ export async function GET(
       templates,
     });
   } catch (err: any) {
-    console.error(`[api/products/${params.slug}/templates] GET failed:`, err);
+    console.error(`[api/products/${rawSlug}/templates] GET failed:`, err);
     return NextResponse.json(
       { success: false, error: err?.message || "Failed to fetch templates" },
       { status: 500 },
@@ -47,6 +48,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { slug: string } },
 ) {
+  const { slug: rawSlug } = params;
   if (!checkAdminAuth(req)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized: Invalid or missing admin credentials." },
@@ -55,14 +57,14 @@ export async function PUT(
   }
 
   try {
-    const slug = params.slug.toLowerCase();
+    const slug = rawSlug.toLowerCase();
     const product = await prisma.product.findFirst({
-      where: { OR: [{ slug }, { slug: params.slug }] },
+      where: { OR: [{ slug }, { slug: rawSlug }] },
     });
 
     if (!product) {
       return NextResponse.json(
-        { success: false, error: `Product "${params.slug}" not found.` },
+        { success: false, error: `Product "${rawSlug}" not found.` },
         { status: 404 },
       );
     }
@@ -132,7 +134,7 @@ export async function PUT(
       template: updated,
     });
   } catch (err: any) {
-    console.error(`[api/products/${params.slug}/templates] PUT failed:`, err);
+    console.error(`[api/products/${rawSlug}/templates] PUT failed:`, err);
     return NextResponse.json(
       { success: false, error: err?.message || "Failed to update template" },
       { status: 500 },
