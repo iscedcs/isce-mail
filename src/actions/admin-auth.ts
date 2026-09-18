@@ -104,7 +104,7 @@ async function sendTwoFactorEmail(
   const resend = new Resend(isceResendKey);
   const fromAddress = formatSenderAddress(process.env.FROM_EMAIL_ADDRESS);
 
-  const isceLogoUrl = "https://www.isce.tech/images/fi-white.webp";
+  const isceLogoUrl = "https://www.isce.tech/images/isce_white_full_logo.png";
 
   const emailHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px; background-color: #000000; color: #FFFFFF;">
