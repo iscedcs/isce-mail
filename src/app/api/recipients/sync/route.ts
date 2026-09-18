@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveProduct } from "@/lib/product-resolver";
 import { prisma } from "@/lib/prisma";
+import { isDeliverableEmail } from "@/lib/mail-action/shared";
 import {
   fetchPalmTechniqRecipients,
   invalidatePalmTechniqCache,
@@ -37,7 +38,7 @@ async function getDatabaseFallbackRecipients(basis: string): Promise<SyncedRecip
 
     for (const r of campaignRecipients) {
       const email = r.email.trim().toLowerCase();
-      if (email && !collected.has(email)) {
+      if (email && isDeliverableEmail(email) && !collected.has(email)) {
         collected.set(email, {
           id: r.id,
           email,
@@ -66,7 +67,7 @@ async function getDatabaseFallbackRecipients(basis: string): Promise<SyncedRecip
 
     for (const c of contacts) {
       const email = c.email.trim().toLowerCase();
-      if (email && !collected.has(email)) {
+      if (email && isDeliverableEmail(email) && !collected.has(email)) {
         collected.set(email, {
           id: c.id,
           email,

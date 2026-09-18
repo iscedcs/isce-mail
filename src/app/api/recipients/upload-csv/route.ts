@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDeliverableEmail } from "@/lib/mail-action/shared";
 
 export const dynamic = "force-dynamic";
-
-// Email regex pattern for validation
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Fast RFC-4180 compliant CSV line parser supporting quoted fields and commas inside quotes.
@@ -94,7 +92,7 @@ export async function POST(req: NextRequest) {
     // Fallback if no header row detected: find the first column containing an '@'
     if (!hasHeader) {
       for (let c = 0; c < (rawRows[0]?.length || 0); c++) {
-        if (EMAIL_REGEX.test(rawRows[0][c])) {
+        if (isDeliverableEmail(rawRows[0][c])) {
           emailIdx = c;
           break;
         }
@@ -112,7 +110,7 @@ export async function POST(req: NextRequest) {
       const row = rawRows[i];
       const rawEmail = (row[emailIdx] || "").trim().toLowerCase();
 
-      if (!rawEmail || !EMAIL_REGEX.test(rawEmail)) {
+      if (!rawEmail || !isDeliverableEmail(rawEmail)) {
         invalidCount++;
         continue;
       }

@@ -7,6 +7,7 @@ import { listCampaigns } from "@/lib/campaigns";
 import { checkAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   if (!checkAdminAuth(req)) {
