@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       link: body.link,
       templateProps: body.templateProps || body,
       recipients: body.recipients,
-      batchSize: body.batchSize || 100,
+      batchSize: body.batchSize ? Number(body.batchSize) : undefined,
       scheduledFor: body.scheduledFor,
     });
 

@@ -18,7 +18,15 @@ import {
   CheckCircle2,
   Loader2,
   FileCode2,
+  Zap,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,6 +81,8 @@ type Product = {
   syncUrl: string | null;
   isActive: boolean;
   createdAt: string;
+  planTier?: string;
+  dailyQuota?: number;
   emailLayout?: EmailLayout | null;
   _count?: {
     campaigns: number;
@@ -132,6 +142,8 @@ export default function AdminProductsPage() {
     socialLinkedin: "",
     socialTwitter: "",
     socialInstagram: "",
+    planTier: "free",
+    dailyQuota: 100,
   });
 
   // Edit Product modal state
@@ -236,6 +248,8 @@ export default function AdminProductsPage() {
       socialFacebook: product.socialLinks?.facebook || "",
       socialSlack: product.socialLinks?.slack || "",
       socialYoutube: product.socialLinks?.youtube || "",
+      planTier: product.planTier || "free",
+      dailyQuota: product.dailyQuota || 100,
       isActive: product.isActive,
     });
     setEditOpen(true);
@@ -277,6 +291,8 @@ export default function AdminProductsPage() {
         address: editData.address || null,
         socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : null,
         syncUrl: editData.syncUrl || null,
+        planTier: editData.planTier || "free",
+        dailyQuota: Number(editData.dailyQuota) || 100,
         isActive: Boolean(editData.isActive),
       };
 
@@ -351,6 +367,8 @@ export default function AdminProductsPage() {
         socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
         syncUrl: newProduct.syncUrl || undefined,
         syncApiKey: newProduct.syncApiKey || undefined,
+        planTier: newProduct.planTier || "free",
+        dailyQuota: Number(newProduct.dailyQuota) || 100,
       };
 
       const res = await fetch("/api/products", {
@@ -626,9 +644,14 @@ export default function AdminProductsPage() {
                         <p className="text-xs text-white/80 font-mono">slug: {p.slug}</p>
                       </div>
                     </div>
-                    <Badge variant={p.isActive ? "default" : "secondary"} className="bg-white/20 text-white text-[10px] border-none uppercase">
-                      {p.isActive ? "Active" : "Disabled"}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge className="bg-white/20 text-white text-[10px] border-none capitalize">
+                        {p.planTier || "free"} • {(p.dailyQuota || 100).toLocaleString()}/day
+                      </Badge>
+                      <Badge variant={p.isActive ? "default" : "secondary"} className="bg-white/20 text-white text-[10px] border-none uppercase">
+                        {p.isActive ? "Active" : "Disabled"}
+                      </Badge>
+                    </div>
                   </div>
 
                   <CardContent className="p-5 space-y-4 text-sm">
@@ -637,6 +660,17 @@ export default function AdminProductsPage() {
                     )}
 
                     <div className="space-y-2 pt-1 border-t">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Zap className="h-3.5 w-3.5 text-amber-500" /> Plan & Quota
+                        </span>
+                        <span className="font-semibold text-slate-800 flex items-center gap-1">
+                          <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold uppercase">
+                            {p.planTier || "free"}
+                          </span>
+                          {(p.dailyQuota || 100).toLocaleString()} emails/day
+                        </span>
+                      </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground flex items-center gap-1.5">
                           <Mail className="h-3.5 w-3.5" /> Sender
@@ -783,6 +817,55 @@ export default function AdminProductsPage() {
                       value={editData.description || ""}
                       onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-planTier">Plan Tier</Label>
+                      <Select
+                        value={editData.planTier || "free"}
+                        onValueChange={(val) => {
+                          const quotaMap: Record<string, number> = {
+                            free: 100,
+                            starter: 500,
+                            growth: 2500,
+                            enterprise: 10000,
+                          };
+                          setEditData({
+                            ...editData,
+                            planTier: val,
+                            dailyQuota: quotaMap[val] || editData.dailyQuota || 100,
+                          });
+                        }}
+                      >
+                        <SelectTrigger id="edit-planTier" className="text-xs">
+                          <SelectValue placeholder="Select plan tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free (100 emails/day)</SelectItem>
+                          <SelectItem value="starter">Starter (500 emails/day)</SelectItem>
+                          <SelectItem value="growth">Growth (2,500 emails/day)</SelectItem>
+                          <SelectItem value="enterprise">Enterprise (10,000 emails/day)</SelectItem>
+                          <SelectItem value="custom">Custom Quota</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-dailyQuota">Daily Dispatch Quota</Label>
+                      <Input
+                        id="edit-dailyQuota"
+                        type="number"
+                        min="1"
+                        max="1000000"
+                        value={editData.dailyQuota || 100}
+                        onChange={(e) => setEditData({ ...editData, dailyQuota: Number(e.target.value) })}
+                        disabled={Boolean(editData.planTier && editData.planTier !== "custom")}
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Emails dispatched in each daily batch.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between p-3 rounded-lg border bg-slate-50">
@@ -1093,6 +1176,55 @@ export default function AdminProductsPage() {
                       value={newProduct.description}
                       onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-planTier">Plan Tier</Label>
+                      <Select
+                        value={newProduct.planTier || "free"}
+                        onValueChange={(val) => {
+                          const quotaMap: Record<string, number> = {
+                            free: 100,
+                            starter: 500,
+                            growth: 2500,
+                            enterprise: 10000,
+                          };
+                          setNewProduct({
+                            ...newProduct,
+                            planTier: val,
+                            dailyQuota: quotaMap[val] || newProduct.dailyQuota || 100,
+                          });
+                        }}
+                      >
+                        <SelectTrigger id="new-planTier" className="text-xs">
+                          <SelectValue placeholder="Select plan tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free (100 emails/day)</SelectItem>
+                          <SelectItem value="starter">Starter (500 emails/day)</SelectItem>
+                          <SelectItem value="growth">Growth (2,500 emails/day)</SelectItem>
+                          <SelectItem value="enterprise">Enterprise (10,000 emails/day)</SelectItem>
+                          <SelectItem value="custom">Custom Quota</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="new-dailyQuota">Daily Dispatch Quota</Label>
+                      <Input
+                        id="new-dailyQuota"
+                        type="number"
+                        min="1"
+                        max="1000000"
+                        value={newProduct.dailyQuota || 100}
+                        onChange={(e) => setNewProduct({ ...newProduct, dailyQuota: Number(e.target.value) })}
+                        disabled={Boolean(newProduct.planTier && newProduct.planTier !== "custom")}
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Emails dispatched in each daily batch.
+                      </p>
+                    </div>
                   </div>
 
                   <Button type="button" size="sm" onClick={() => setFormStep("sender")} className="w-full">

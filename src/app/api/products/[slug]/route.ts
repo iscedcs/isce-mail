@@ -36,11 +36,12 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { slug: string } },
 ) {
+  const { slug: rawSlug } = params;
   try {
-    const slug = params.slug.toLowerCase();
+    const slug = rawSlug.toLowerCase();
     const product = await prisma.product.findFirst({
       where: {
-        OR: [{ slug }, { slug: params.slug }],
+        OR: [{ slug }, { slug: rawSlug }],
       },
       include: {
         templates: {
@@ -54,7 +55,7 @@ export async function GET(
 
     if (!product) {
       return NextResponse.json(
-        { success: false, error: `Product "${params.slug}" not found.` },
+        { success: false, error: `Product "${rawSlug}" not found.` },
         { status: 404 },
       );
     }
@@ -72,7 +73,7 @@ export async function GET(
       },
     });
   } catch (err: any) {
-    console.error(`[api/products/${params.slug}] GET failed:`, err);
+    console.error(`[api/products/${rawSlug}] GET failed:`, err);
     return NextResponse.json(
       { success: false, error: err?.message || "Failed to fetch product" },
       { status: 500 },
@@ -85,6 +86,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { slug: string } },
 ) {
+  const { slug: rawSlug } = params;
   if (!checkAdminAuth(req)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized: Invalid or missing admin credentials." },
@@ -93,14 +95,14 @@ export async function PUT(
   }
 
   try {
-    const slug = params.slug.toLowerCase();
+    const slug = rawSlug.toLowerCase();
     const existing = await prisma.product.findFirst({
-      where: { OR: [{ slug }, { slug: params.slug }] },
+      where: { OR: [{ slug }, { slug: rawSlug }] },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { success: false, error: `Product "${params.slug}" not found.` },
+        { success: false, error: `Product "${rawSlug}" not found.` },
         { status: 404 },
       );
     }
@@ -124,6 +126,8 @@ export async function PUT(
     if (body.address !== undefined) updateData.address = body.address?.trim() || null;
     if (body.socialLinks !== undefined) updateData.socialLinks = body.socialLinks;
     if (body.syncUrl !== undefined) updateData.syncUrl = body.syncUrl?.trim() || null;
+    if (body.planTier !== undefined) updateData.planTier = body.planTier;
+    if (body.dailyQuota !== undefined) updateData.dailyQuota = Number(body.dailyQuota);
     if (body.isActive !== undefined) updateData.isActive = Boolean(body.isActive);
 
     // Sanitize secret in case user pasted VAR_NAME=value or wrapped in quotes
@@ -183,7 +187,7 @@ export async function PUT(
       product: safeUpdated,
     });
   } catch (err: any) {
-    console.error(`[api/products/${params.slug}] PUT failed:`, err);
+    console.error(`[api/products/${rawSlug}] PUT failed:`, err);
     return NextResponse.json(
       { success: false, error: err?.message || "Failed to update product" },
       { status: 500 },
@@ -196,6 +200,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { slug: string } },
 ) {
+  const { slug: rawSlug } = params;
   if (!checkAdminAuth(req)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized: Invalid or missing admin credentials." },
@@ -204,14 +209,14 @@ export async function DELETE(
   }
 
   try {
-    const slug = params.slug.toLowerCase();
+    const slug = rawSlug.toLowerCase();
     const product = await prisma.product.findFirst({
-      where: { OR: [{ slug }, { slug: params.slug }] },
+      where: { OR: [{ slug }, { slug: rawSlug }] },
     });
 
     if (!product) {
       return NextResponse.json(
-        { success: false, error: `Product "${params.slug}" not found.` },
+        { success: false, error: `Product "${rawSlug}" not found.` },
         { status: 404 },
       );
     }
@@ -228,7 +233,7 @@ export async function DELETE(
       message: `Product "${product.name}" deactivated successfully.`,
     });
   } catch (err: any) {
-    console.error(`[api/products/${params.slug}] DELETE failed:`, err);
+    console.error(`[api/products/${rawSlug}] DELETE failed:`, err);
     return NextResponse.json(
       { success: false, error: err?.message || "Failed to deactivate product" },
       { status: 500 },

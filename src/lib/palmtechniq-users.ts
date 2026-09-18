@@ -48,11 +48,7 @@ export function invalidatePalmTechniqCache(): void {
 function getPalmTechniqSyncConfig() {
   const baseUrl =
     process.env.PALMTECHNIQ_SYNC_BASE_URL || "http://localhost:2026";
-  const apiKey = process.env.PALMTECHNIQ_SYNC_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("PALMTECHNIQ_SYNC_API_KEY is not configured.");
-  }
+  const apiKey = process.env.PALMTECHNIQ_SYNC_API_KEY || "";
 
   return {
     baseUrl: baseUrl.replace(/\/$/, ""),
@@ -62,6 +58,8 @@ function getPalmTechniqSyncConfig() {
 
 export async function fetchPalmTechniqRecipients(options?: {
   since?: string;
+  baseUrl?: string | null;
+  apiKey?: string | null;
 }): Promise<SyncResult & { fromCache: boolean }> {
   const isFullSync = !options?.since;
 
@@ -73,7 +71,19 @@ export async function fetchPalmTechniqRecipients(options?: {
     }
   }
 
-  const { baseUrl, apiKey } = getPalmTechniqSyncConfig();
+  const defaultConf = getPalmTechniqSyncConfig();
+  const rawBaseUrl = options?.baseUrl || defaultConf.baseUrl;
+  const apiKey = options?.apiKey || defaultConf.apiKey;
+
+  if (!apiKey) {
+    throw new Error("PalmTechniq Sync API Key is not configured in Admin Brands or environment.");
+  }
+
+  const baseUrl = (rawBaseUrl || "http://localhost:2026").replace(/\/$/, "");
+  const endpoint = baseUrl.includes("/api/")
+    ? baseUrl
+    : `${baseUrl}/api/integrations/mailing/users`;
+
   const collected = new Map<string, SyncedRecipient>();
 
   let hasMore = true;
@@ -84,16 +94,28 @@ export async function fetchPalmTechniqRecipients(options?: {
     if (cursor) params.set("cursor", cursor);
     if (options?.since) params.set("since", options.since);
 
-    const response = await fetch(
-      `${baseUrl}/api/integrations/mailing/users?${params.toString()}`,
-      {
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const requestUrl = `${endpoint}${separator}${params.toString()}`;
+
+    let response: Response;
+    try {
+      response = await fetch(requestUrl, {
         method: "GET",
         headers: {
           "x-integration-key": apiKey,
+          Authorization: `Bearer ${apiKey}`,
         },
         cache: "no-store",
-      },
-    );
+      });
+    } catch (netErr: any) {
+      const code = netErr?.cause?.code || netErr?.code;
+      if (code === "ECONNREFUSED" || netErr?.message?.includes("fetch failed")) {
+        throw new Error(
+          `Unable to connect to PalmTechniq audience server at ${baseUrl} (ECONNREFUSED). The server is offline or unreachable.`
+        );
+      }
+      throw netErr;
+    }
 
     if (!response.ok) {
       const text = await response.text();

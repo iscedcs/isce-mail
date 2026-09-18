@@ -9,6 +9,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const { id } = params;
   if (!checkAdminAuth(req)) {
     return NextResponse.json(
       { error: "Unauthorized: Admin authentication required." },
@@ -16,7 +17,7 @@ export async function GET(
     );
   }
   try {
-    const dbResult = await getCampaignBatchesFromDb(params.id);
+    const dbResult = await getCampaignBatchesFromDb(id);
     if (dbResult) {
       return NextResponse.json(dbResult);
     }
@@ -24,7 +25,7 @@ export async function GET(
     console.error("[api/campaigns/[id]] DB lookup error:", err);
   }
 
-  const campaign = getCampaign(params.id);
+  const campaign = getCampaign(id);
   if (!campaign) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -35,6 +36,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const { id } = params;
   if (!checkAdminAuth(req)) {
     return NextResponse.json(
       { error: "Unauthorized: Admin authentication required to cancel campaigns." },
@@ -42,12 +44,12 @@ export async function DELETE(
     );
   }
   try {
-    await cancelCampaignInDb(params.id);
+    await cancelCampaignInDb(id);
   } catch (err) {
     console.error("[api/campaigns/[id]] DB cancel error:", err);
   }
 
-  const campaign = cancelCampaign(params.id);
+  const campaign = cancelCampaign(id);
   return NextResponse.json({ ok: true, campaign });
 }
 

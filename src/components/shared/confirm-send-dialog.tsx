@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -28,15 +28,23 @@ import {
   Zap,
 } from "lucide-react";
 
+const KNOWN_DEFAULT_QUOTAS: Record<string, { planTier: string; dailyQuota: number }> = {
+  isce: { planTier: "growth", dailyQuota: 2500 },
+  palmtechniq: { planTier: "growth", dailyQuota: 2500 },
+  connect: { planTier: "growth", dailyQuota: 2500 },
+};
+
 interface ConfirmSendDialogProps {
   open: boolean;
-  onConfirm: () => void;
+  onConfirm: (options?: { batchSize?: number }) => void;
   onSchedule: (scheduledFor: string) => void;
   onCancel: () => void;
   recipientCount: number;
   subject: string;
   basis: string;
   isPending: boolean;
+  dailyQuota?: number;
+  planTier?: string;
 }
 
 export default function ConfirmSendDialog({
@@ -48,10 +56,13 @@ export default function ConfirmSendDialog({
   subject,
   basis,
   isPending,
+  dailyQuota,
+  planTier,
 }: ConfirmSendDialogProps) {
   const [mode, setMode] = useState<"now" | "later">("now");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
+  const [overrideMultiBatch, setOverrideMultiBatch] = useState(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -63,9 +74,52 @@ export default function ConfirmSendDialog({
   const canSubmit =
     !isPending && (mode === "now" || (!!scheduledDate && !!scheduledTime));
 
+  const normalizedBasis = (basis || "").trim().toLowerCase();
+  const knownFallback = KNOWN_DEFAULT_QUOTAS[normalizedBasis] || {
+    planTier: "growth",
+    dailyQuota: 2500,
+  };
+
+  const [resolvedProduct, setResolvedProduct] = useState<{ planTier?: string; dailyQuota?: number } | null>(null);
+
+  useEffect(() => {
+    if (!open && resolvedProduct) return;
+    let mounted = true;
+    fetch(`/api/products?t=${Date.now()}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted || !data.products || !Array.isArray(data.products)) return;
+        const norm = (basis || "").trim().toLowerCase();
+        const found = data.products.find(
+          (p: any) =>
+            p.slug?.toLowerCase() === norm ||
+            p.name?.toLowerCase() === norm,
+        );
+        if (found && mounted) {
+          setResolvedProduct({
+            planTier: found.planTier || knownFallback.planTier,
+            dailyQuota: found.dailyQuota || knownFallback.dailyQuota,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [open, basis, dailyQuota, planTier]);
+
+  // Batch breakdown calculations
+  const effectiveQuota = dailyQuota || resolvedProduct?.dailyQuota || knownFallback.dailyQuota;
+  const effectiveTier = planTier || resolvedProduct?.planTier || knownFallback.planTier;
+  const baseBatchSize = effectiveQuota && effectiveQuota > 0 ? effectiveQuota : 2500;
+  const batchSize = overrideMultiBatch ? Math.max(baseBatchSize, recipientCount) : baseBatchSize;
+  const isMultiBatch = !overrideMultiBatch && recipientCount > baseBatchSize;
+  const totalBatches = Math.max(1, Math.ceil(recipientCount / batchSize));
+  const tierName = effectiveTier ? effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1) : "Growth";
+
   const handleSubmit = () => {
     if (mode === "now") {
-      onConfirm();
+      onConfirm(overrideMultiBatch ? { batchSize: recipientCount } : undefined);
     } else if (scheduledFor) {
       onSchedule(scheduledFor);
     }
@@ -75,13 +129,9 @@ export default function ConfirmSendDialog({
     setMode("now");
     setScheduledDate("");
     setScheduledTime("");
+    setOverrideMultiBatch(false);
     onCancel();
   };
-
-  // Batch breakdown calculations
-  const batchSize = 100;
-  const isMultiBatch = recipientCount > batchSize;
-  const totalBatches = Math.max(1, Math.ceil(recipientCount / batchSize));
 
   const batches = Array.from({ length: totalBatches }, (_, i) => {
     const isLast = i === totalBatches - 1;
@@ -178,7 +228,7 @@ export default function ConfirmSendDialog({
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Quota:</span>
                   <span className="font-semibold text-emerald-700">
-                    100/day limit
+                    {tierName ? `${tierName} • ` : ""}{batchSize.toLocaleString()}/day limit
                   </span>
                 </div>
               </div>
@@ -197,12 +247,12 @@ export default function ConfirmSendDialog({
                     </span>
                   </div>
                   <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100/90 px-2 py-0.5 rounded-full">
-                    100 emails/day limit
+                    {batchSize.toLocaleString()} emails/day limit
                   </span>
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Your audience of <strong>{recipientCount}</strong> exceeds the 100/day plan limit.
+                  Your audience of <strong>{recipientCount.toLocaleString()}</strong> exceeds the {batchSize.toLocaleString()}/day {tierName ? `${tierName} ` : ""}plan limit.
                   Deliveries are split automatically into consecutive daily batches to protect your domain reputation:
                 </p>
 
@@ -278,26 +328,47 @@ export default function ConfirmSendDialog({
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500">
-                  <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  <span>
-                    Remaining batches queue automatically in database. You can inspect or trigger them early in <strong>Campaigns & Insights</strong>.
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-indigo-100/80 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span>
+                      Remaining batches queue automatically in database.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setOverrideMultiBatch(true)}
+                    className="inline-flex items-center gap-1 font-semibold text-indigo-700 hover:text-indigo-900 underline underline-offset-2 hover:no-underline text-[11px] self-start sm:self-auto cursor-pointer"
+                  >
+                    <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
+                    Send all {recipientCount.toLocaleString()} now in 1 batch
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-3.5 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-5 h-5" />
+              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-950">
+                      {overrideMultiBatch ? "Manual Override Active • " : ""}Within {tierName ? `${tierName} ` : ""}Daily Quota Limit
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-0.5">
+                      All {recipientCount.toLocaleString()} emails fit inside your {overrideMultiBatch ? "custom override" : `daily ${batchSize.toLocaleString()}-email`} dispatch and will send in a single batch.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-emerald-950">
-                    Within Daily Quota Limit
-                  </p>
-                  <p className="text-xs text-emerald-700 mt-0.5">
-                    All {recipientCount} emails fit inside your daily 100-email threshold and will be delivered in a single dispatch.
-                  </p>
-                </div>
+                {overrideMultiBatch && (
+                  <button
+                    type="button"
+                    onClick={() => setOverrideMultiBatch(false)}
+                    className="text-[11px] text-slate-500 hover:text-slate-800 underline shrink-0 cursor-pointer"
+                  >
+                    Revert to daily batches
+                  </button>
+                )}
               </div>
             )}
 
@@ -407,7 +478,8 @@ export default function ConfirmSendDialog({
               isMultiBatch ? (
                 <span className="flex items-center gap-2">
                   <Send className="w-3.5 h-3.5" />
-                  Dispatch Batch 1 (100) & Queue {recipientCount - 100}
+                  Dispatch Batch 1 ({Math.min(recipientCount, batchSize).toLocaleString()}) & Queue{" "}
+                  {(recipientCount - Math.min(recipientCount, batchSize)).toLocaleString()}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">

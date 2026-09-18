@@ -20,11 +20,13 @@ export type ProductOption = {
   syncUrl?: string | null;
   websiteUrl?: string;
   logoUrl?: string;
+  planTier?: string;
+  dailyQuota?: number;
 };
 
 const DEFAULT_FALLBACK_PRODUCTS: ProductOption[] = [
-  { id: "isce", name: "ISCE Tech", slug: "isce", primaryColor: "#000000" },
-  { id: "palmtechniq", name: "PalmTechnIQ", slug: "palmtechniq", primaryColor: "#021A1A" },
+  { id: "isce", name: "ISCE Tech", slug: "isce", primaryColor: "#000000", planTier: "growth", dailyQuota: 2500 },
+  { id: "palmtechniq", name: "PalmTechnIQ", slug: "palmtechniq", primaryColor: "#021A1A", planTier: "growth", dailyQuota: 2500 },
 ];
 
 interface ProductSelectProps {
@@ -49,7 +51,7 @@ export default function ProductSelect({
     let mounted = true;
     async function loadProducts() {
       try {
-        const res = await fetch("/api/products");
+        const res = await fetch(`/api/products?t=${Date.now()}`, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           if (mounted && data.products && Array.isArray(data.products) && data.products.length > 0) {

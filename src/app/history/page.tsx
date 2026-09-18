@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import type { Job } from "@/lib/jobs";
 import type { EmailEvent } from "@/lib/email-events";
@@ -111,7 +112,8 @@ export default function DashboardPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<number | "all">("all");
   const [dispatchingBatch, setDispatchingBatch] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check admin session on mount
   useEffect(() => {
@@ -132,8 +134,11 @@ export default function DashboardPage() {
     checkSession();
   }, []);
 
-  const fetchAll = useCallback(() => {
-    setLoading(true);
+  const fetchAll = useCallback((options?: { silent?: boolean }) => {
+    const isSilent = options?.silent ?? false;
+    if (!isSilent) {
+      setIsRefreshing(true);
+    }
     Promise.all([
       fetch("/api/campaigns").then((r) => r.json()).catch(() => []),
       fetch("/api/jobs").then((r) => r.json()).catch(() => []),
@@ -148,13 +153,21 @@ export default function DashboardPage() {
           setProducts(p.products);
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setInitialLoading(false);
+        if (!isSilent) {
+          setIsRefreshing(false);
+        }
+      });
   }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    fetchAll();
-    const interval = setInterval(fetchAll, 15_000);
+    fetchAll({ silent: false });
+    // Silent background poll every 30s without reloading the page or flashing a loader
+    const interval = setInterval(() => {
+      fetchAll({ silent: true });
+    }, 30_000);
     return () => clearInterval(interval);
   }, [fetchAll, isAuthenticated]);
 
@@ -313,8 +326,8 @@ export default function DashboardPage() {
           setIsAuthenticated(false);
           setCurrentUser(null);
         }}
-        onRefresh={fetchAll}
-        isRefreshing={loading}
+        onRefresh={() => fetchAll({ silent: false })}
+        isRefreshing={isRefreshing}
       />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
       {/* Header */}
@@ -329,8 +342,8 @@ export default function DashboardPage() {
           <Button variant="outline" size="sm" onClick={() => (window.location.href = "/admin/products")}>
             Manage Brands
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchAll}>
-            <RefreshCw className="h-4 w-4 mr-1.5" />
+          <Button variant="outline" size="sm" onClick={() => fetchAll({ silent: false })} disabled={isRefreshing}>
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button size="sm" onClick={() => (window.location.href = "/")}>
@@ -448,7 +461,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Content */}
-      {loading ? (
+      {initialLoading ? (
         <div className="flex justify-center py-20">
           <LoaderCircle className="animate-spin h-8 w-8 text-gray-400" />
         </div>
@@ -571,9 +584,9 @@ export default function DashboardPage() {
               {filteredScheduledItems.length === 0 ? (
                 <p className="text-gray-400 text-sm py-12 text-center">
                   No scheduled campaigns or queued batches. Choose a{" "}
-                  <a href="/" className="text-indigo-600 underline">
+                  <Link href="/" className="text-indigo-600 underline">
                     template
-                  </a>{" "}
+                  </Link>{" "}
                   to compose and schedule one.
                 </p>
               ) : (

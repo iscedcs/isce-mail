@@ -9,6 +9,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const { id } = params;
   if (!checkAdminAuth(req)) {
     return NextResponse.json(
       { error: "Unauthorized: Admin authentication required to dispatch batches." },
@@ -23,7 +24,7 @@ export async function POST(
     // so a manual retry always works — even if the circuit breaker tripped.
     await prisma.campaignRecipient.updateMany({
       where: {
-        campaignId: params.id,
+        campaignId: id,
         batchNumber,
         status: "failed",
         resendEmailId: null,
@@ -34,7 +35,7 @@ export async function POST(
       },
     });
 
-    const result = await dispatchScheduledBatch(params.id, batchNumber);
+    const result = await dispatchScheduledBatch(id, batchNumber);
 
     if (result.sent === 0) {
       return NextResponse.json(

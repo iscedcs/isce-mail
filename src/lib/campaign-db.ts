@@ -70,14 +70,26 @@ export interface CampaignResult {
   batch1SentCount: number;
 }
 
-/**
- * Creates a campaign in Neon Postgres using Prisma, segments recipients into daily batches of 100,
- * and dispatches Batch 1 immediately (or schedules if scheduledFor is in future).
- */
 export async function createCampaignWithBatches(
   params: CreateCampaignParams,
 ): Promise<CampaignResult> {
-  const batchSize = params.batchSize || 100;
+  // 0. Resolve product (validates slug exists, loads branding/API key/daily quota)
+  let resolvedProductId: string | null = null;
+  let productDailyQuota = 100;
+  try {
+    const product = await resolveProduct(params.basis);
+    if (product.dailyQuota && product.dailyQuota > 0) {
+      productDailyQuota = product.dailyQuota;
+    }
+    // DB-seeded products have a real cuid; legacy env-fallbacks return the slug as id
+    if (product.id !== product.slug) {
+      resolvedProductId = product.id;
+    }
+  } catch {
+    console.warn(`[campaign-db] Could not resolve product "${params.basis}" — proceeding without productId.`);
+  }
+
+  const batchSize = params.batchSize || productDailyQuota;
 
   // Deduplicate incoming recipients
   const seenEmails = new Set<string>();
@@ -91,18 +103,6 @@ export async function createCampaignWithBatches(
         name: r.firstname || r.name || "",
       });
     }
-  }
-
-  // 0. Resolve product (validates slug exists, loads branding/API key)
-  let resolvedProductId: string | null = null;
-  try {
-    const product = await resolveProduct(params.basis);
-    // DB-seeded products have a real cuid; legacy env-fallbacks return the slug as id
-    if (product.id !== product.slug) {
-      resolvedProductId = product.id;
-    }
-  } catch {
-    console.warn(`[campaign-db] Could not resolve product "${params.basis}" — proceeding without productId.`);
   }
 
   // 1. Bulk Upsert Contacts into Prisma
@@ -215,47 +215,44 @@ export async function createCampaignWithBatches(
     data: recipientRecords,
   });
 
-  // 5. If not future scheduled, immediately dispatch Batch 1!
-  let batch1SentCount = 0;
-  if (!isFutureScheduled) {
-    const batch1 = batches[0];
+/**
+ * Asynchronously dispatches Batch 1 in background chunks of 100 with 1s intervals.
+ * Updates Neon DB recipient statuses, contact stats, and campaign status without blocking the API response.
+ */
+async function executeBatch1BackgroundDispatch(args: {
+  campaignId: string;
+  type: string;
+  basis: string;
+  subject: string;
+  message: string;
+  link?: string;
+  templateProps?: Record<string, any>;
+  recipients: { email: string; name?: string }[];
+  isSingleBatch: boolean;
+}): Promise<void> {
+  const { campaignId, type, basis, subject, message, link, templateProps, recipients, isSingleBatch } = args;
 
-    let dispatchResult: Awaited<ReturnType<typeof dispatchEmail>>;
-    try {
-      dispatchResult = await dispatchEmail(
-        params.type,
-        params.basis,
-        params.subject,
-        params.message,
-        params.link,
-        params.templateProps,
-        batch1.recipients,
-      );
-    } catch (dispatchErr) {
-      // Revert Batch 1 recipients to "scheduled" (scheduledFor = now) so the scheduler
-      // can retry on the next tick. Without this, any throw (e.g. decryption error,
-      // Resend network failure) leaves recipients stuck in "sending" forever.
-      console.error("[campaign-db] Batch 1 immediate dispatch failed — reverting to scheduled:", dispatchErr);
-      await prisma.campaignRecipient.updateMany({
-        where: { campaignId, batchNumber: 1, status: "sending", resendEmailId: null },
-        data: { status: "scheduled", scheduledFor: new Date() },
-      });
-      await prisma.campaign.update({
-        where: { id: campaignId },
-        data: { status: "scheduled" },
-      });
-      throw dispatchErr;
-    }
+  try {
+    console.log(
+      `[campaign-db] 🚀 Starting background Batch 1 dispatch for campaign ${campaignId} (${recipients.length} recipients in chunks of 100 with 1s interval)...`
+    );
 
-    batch1SentCount = dispatchResult.sent;
-    batch1.sentAt = new Date().toISOString();
+    const dispatchResult = await dispatchEmail(
+      type,
+      basis,
+      subject,
+      message,
+      link,
+      templateProps,
+      recipients,
+    );
 
     const idMap = new Map(dispatchResult.ids.map((item) => [item.email.toLowerCase(), item.resendEmailId]));
     const successfulEmails = dispatchResult.ids.map((item) => item.email.toLowerCase());
 
     // Update recipients with status & resend IDs in parallel
     await Promise.all(
-      batch1.recipients.map((r) => {
+      recipients.map((r) => {
         const resendId = idMap.get(r.email.toLowerCase()) || null;
         return prisma.campaignRecipient.updateMany({
           where: { campaignId, email: r.email },
@@ -279,8 +276,7 @@ export async function createCampaignWithBatches(
       });
     }
 
-    const allSentNow = batches.length === 1;
-    const campaignStatus = allSentNow
+    const campaignStatus = isSingleBatch
       ? dispatchResult.sent > 0
         ? "completed"
         : "failed"
@@ -294,12 +290,44 @@ export async function createCampaignWithBatches(
       },
     });
 
-    if (dispatchResult.sent === 0 && dispatchResult.failed > 0) {
-      const errDetail = dispatchResult.errors?.length
-        ? dispatchResult.errors.join("; ")
-        : "Resend failed to deliver the batch.";
-      throw new Error(`Email dispatch failed: ${errDetail}`);
-    }
+    console.log(
+      `[campaign-db] ✅ Batch 1 background dispatch completed for campaign ${campaignId}: ${dispatchResult.sent} sent, ${dispatchResult.failed} failed.`
+    );
+  } catch (dispatchErr) {
+    console.error(
+      `[campaign-db] ❌ Batch 1 background dispatch failed for campaign ${campaignId} — reverting to scheduled:`,
+      dispatchErr
+    );
+    await prisma.campaignRecipient.updateMany({
+      where: { campaignId, batchNumber: 1, status: "sending", resendEmailId: null },
+      data: { status: "scheduled", scheduledFor: new Date() },
+    });
+    await prisma.campaign.update({
+      where: { id: campaignId },
+      data: { status: "scheduled" },
+    });
+  }
+}
+
+  // 5. If not future scheduled, immediately dispatch Batch 1 in background chunks!
+  if (!isFutureScheduled) {
+    const batch1 = batches[0];
+    batch1.sentAt = new Date().toISOString();
+
+    // Trigger non-blocking chunked background dispatch
+    executeBatch1BackgroundDispatch({
+      campaignId,
+      type: params.type,
+      basis: params.basis,
+      subject: params.subject,
+      message: params.message,
+      link: params.link,
+      templateProps: params.templateProps,
+      recipients: batch1.recipients,
+      isSingleBatch: batches.length === 1,
+    }).catch((err) => {
+      console.error("[campaign-db] Unhandled error in background Batch 1 dispatch:", err);
+    });
   }
 
   return {
@@ -310,7 +338,7 @@ export async function createCampaignWithBatches(
     excludedCount: badContacts.length,
     validCount: validRecipients.length,
     batches,
-    batch1SentCount,
+    batch1SentCount: !isFutureScheduled ? batches[0]?.count || 0 : 0,
   };
 }
 

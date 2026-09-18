@@ -89,13 +89,14 @@ export function interpolate(
 }
 
 // ---------------------------------------------------------------------------
-// True batching
+// True batching — chunks of 50 to prevent Resend HTTP timeouts on large email payloads
 // ---------------------------------------------------------------------------
 
-const RESEND_BATCH_LIMIT = 100;
+export const RESEND_BATCH_LIMIT = 100;
+export const CHUNK_INTERVAL_MS = 1000; // 1-second interval between chunks to eliminate network bursts & respect rate limits
 
 /**
- * Send all payloads via Resend's batch endpoint, chunked to 100 per call.
+ * Send all payloads via Resend's batch endpoint, chunked to 100 per call with 1s interval.
  * Returns the count of successfully queued emails.
  */
 export async function sendBatch(
@@ -104,9 +105,16 @@ export async function sendBatch(
 ): Promise<number> {
   if (payloads.length === 0) return 0;
 
+  const totalChunks = Math.ceil(payloads.length / RESEND_BATCH_LIMIT);
   let sent = 0;
   for (let i = 0; i < payloads.length; i += RESEND_BATCH_LIMIT) {
+    const chunkIndex = Math.floor(i / RESEND_BATCH_LIMIT) + 1;
+    if (i > 0) {
+      console.log(`[sendBatch] Waiting ${CHUNK_INTERVAL_MS}ms interval before chunk ${chunkIndex}/${totalChunks}...`);
+      await new Promise((r) => setTimeout(r, CHUNK_INTERVAL_MS));
+    }
     const chunk = payloads.slice(i, i + RESEND_BATCH_LIMIT);
+    console.log(`[sendBatch] Dispatching chunk ${chunkIndex}/${totalChunks} (${chunk.length} emails)...`);
     await resend.batch.send(chunk);
     sent += chunk.length;
   }
@@ -201,8 +209,15 @@ export async function sendBatchTracked(
   const ids: { resendEmailId: string; email: string }[] = [];
   const errors: string[] = [];
 
+  const totalChunks = Math.ceil(payloads.length / RESEND_BATCH_LIMIT);
   for (let i = 0; i < payloads.length; i += RESEND_BATCH_LIMIT) {
+    const chunkIndex = Math.floor(i / RESEND_BATCH_LIMIT) + 1;
+    if (i > 0) {
+      console.log(`[sendBatchTracked] Waiting ${CHUNK_INTERVAL_MS}ms interval before chunk ${chunkIndex}/${totalChunks}...`);
+      await new Promise((r) => setTimeout(r, CHUNK_INTERVAL_MS));
+    }
     const chunk = payloads.slice(i, i + RESEND_BATCH_LIMIT);
+    console.log(`[sendBatchTracked] Dispatching chunk ${chunkIndex}/${totalChunks} (${chunk.length} emails to Resend)...`);
     try {
       const result = await resend.batch.send(chunk);
       if (result.error) {
