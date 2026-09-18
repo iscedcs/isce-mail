@@ -55,6 +55,7 @@
 		"@tiptap/react": "^2.27.3",
 		"@tiptap/starter-kit": "^2.27.3",
 		"class-variance-authority": "^0.7.0",
+		"clsx": "^2.1.1",
 		"cmdk": "^1.0.0",
 		"date-fns": "^3.6.0",
 		"dompurify": "^3.4.15",
@@ -106,5 +107,15 @@
 		"cookie": "^0.7.0",
 		"esbuild": "^0.25.0",
 		"engine.io": "^6.6.10"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"@prisma/client",
+			"@prisma/engines",
+			"@swc/core",
+			"esbuild",
+			"prisma",
+			"unrs-resolver"
+		]
 	}
 }

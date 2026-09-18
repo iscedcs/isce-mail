@@ -12,7 +12,7 @@
  */
 
 import React from "react";
-import { renderAsync } from "@react-email/render";
+import { renderAsync } from "@react-email/components";
 import { prisma } from "@/lib/prisma";
 import type { ResolvedProduct } from "@/lib/product-resolver";
 import { getResendForProduct, getSenderForProduct } from "@/lib/product-resolver";
