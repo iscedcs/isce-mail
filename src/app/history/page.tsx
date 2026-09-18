@@ -190,7 +190,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ batchNumber }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: `Server returned HTTP ${res.status}` }));
       if (res.ok) {
         fetchAll();
         const updatedRes = await fetch(`/api/campaigns/${campaignId}`);
@@ -201,8 +201,8 @@ export default function DashboardPage() {
       } else {
         alert(data.error || "Failed to dispatch batch");
       }
-    } catch {
-      alert("Network error while dispatching batch.");
+    } catch (e: any) {
+      alert(e?.message || "Network error while dispatching batch.");
     } finally {
       setDispatchingBatch(null);
     }

@@ -95,6 +95,27 @@ export function interpolate(
 export const RESEND_BATCH_LIMIT = 100;
 export const CHUNK_INTERVAL_MS = 1000; // 1-second interval between chunks to eliminate network bursts & respect rate limits
 
+// RFC 2606 reserved domains & common dummy domains strictly rejected by Resend API
+export const FORBIDDEN_TEST_DOMAINS = new Set([
+  "example.com",
+  "example.org",
+  "example.net",
+  "example.edu",
+  "test.com",
+  "sample.com",
+  "invalid",
+  "localhost",
+]);
+
+export function isDeliverableEmail(email: string): boolean {
+  if (!email || typeof email !== "string") return false;
+  const clean = email.toLowerCase().trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return false;
+  const domain = clean.split("@")[1];
+  if (!domain || FORBIDDEN_TEST_DOMAINS.has(domain)) return false;
+  return true;
+}
+
 /**
  * Send all payloads via Resend's batch endpoint, chunked to 100 per call with 1s interval.
  * Returns the count of successfully queued emails.
@@ -103,17 +124,18 @@ export async function sendBatch(
   resend: Resend,
   payloads: EmailPayload[],
 ): Promise<number> {
-  if (payloads.length === 0) return 0;
+  const validPayloads = payloads.filter((p) => isDeliverableEmail(p.to));
+  if (validPayloads.length === 0) return 0;
 
-  const totalChunks = Math.ceil(payloads.length / RESEND_BATCH_LIMIT);
+  const totalChunks = Math.ceil(validPayloads.length / RESEND_BATCH_LIMIT);
   let sent = 0;
-  for (let i = 0; i < payloads.length; i += RESEND_BATCH_LIMIT) {
+  for (let i = 0; i < validPayloads.length; i += RESEND_BATCH_LIMIT) {
     const chunkIndex = Math.floor(i / RESEND_BATCH_LIMIT) + 1;
     if (i > 0) {
       console.log(`[sendBatch] Waiting ${CHUNK_INTERVAL_MS}ms interval before chunk ${chunkIndex}/${totalChunks}...`);
       await new Promise((r) => setTimeout(r, CHUNK_INTERVAL_MS));
     }
-    const chunk = payloads.slice(i, i + RESEND_BATCH_LIMIT);
+    const chunk = validPayloads.slice(i, i + RESEND_BATCH_LIMIT);
     console.log(`[sendBatch] Dispatching chunk ${chunkIndex}/${totalChunks} (${chunk.length} emails)...`);
     await resend.batch.send(chunk);
     sent += chunk.length;
@@ -138,11 +160,9 @@ export function parseEmailString(raw: string): BatchRecipient[] {
   const recipients: BatchRecipient[] = [];
   const seen = new Set<string>();
 
-  const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-
   for (const line of lines) {
     const parts = line.split(",").map((p) => p.trim());
-    const emailParts = parts.filter((p) => isEmail(p));
+    const emailParts = parts.filter((p) => isDeliverableEmail(p));
     if (emailParts.length > 1) {
       for (const email of emailParts) {
         const clean = email.toLowerCase().trim();
@@ -151,7 +171,7 @@ export function parseEmailString(raw: string): BatchRecipient[] {
           recipients.push({ email: clean, name: "" });
         }
       }
-    } else if (parts.length > 0 && isEmail(parts[0])) {
+    } else if (parts.length > 0 && isDeliverableEmail(parts[0])) {
       const clean = parts[0].toLowerCase().trim();
       if (!seen.has(clean)) {
         seen.add(clean);
@@ -166,7 +186,7 @@ export function parseEmailString(raw: string): BatchRecipient[] {
 
   // Fallback for simple comma or whitespace-separated list
   if (recipients.length === 0 && raw.includes("@")) {
-    const tokens = raw.split(/[,\s;]+/).map((t) => t.trim()).filter((t) => isEmail(t));
+    const tokens = raw.split(/[,\s;]+/).map((t) => t.trim()).filter((t) => isDeliverableEmail(t));
     for (const email of tokens) {
       const clean = email.toLowerCase();
       if (!seen.has(clean)) {
@@ -209,14 +229,29 @@ export async function sendBatchTracked(
   const ids: { resendEmailId: string; email: string }[] = [];
   const errors: string[] = [];
 
-  const totalChunks = Math.ceil(payloads.length / RESEND_BATCH_LIMIT);
-  for (let i = 0; i < payloads.length; i += RESEND_BATCH_LIMIT) {
+  // Filter out any non-deliverable or RFC test domains to protect the batch from 422 errors
+  const validPayloads: EmailPayload[] = [];
+  for (const p of payloads) {
+    if (isDeliverableEmail(p.to)) {
+      validPayloads.push(p);
+    } else {
+      failed++;
+      errors.push(`Skipped non-deliverable/test address: ${p.to}`);
+    }
+  }
+
+  if (validPayloads.length === 0) {
+    return { sent, failed, ids, errors };
+  }
+
+  const totalChunks = Math.ceil(validPayloads.length / RESEND_BATCH_LIMIT);
+  for (let i = 0; i < validPayloads.length; i += RESEND_BATCH_LIMIT) {
     const chunkIndex = Math.floor(i / RESEND_BATCH_LIMIT) + 1;
     if (i > 0) {
       console.log(`[sendBatchTracked] Waiting ${CHUNK_INTERVAL_MS}ms interval before chunk ${chunkIndex}/${totalChunks}...`);
       await new Promise((r) => setTimeout(r, CHUNK_INTERVAL_MS));
     }
-    const chunk = payloads.slice(i, i + RESEND_BATCH_LIMIT);
+    const chunk = validPayloads.slice(i, i + RESEND_BATCH_LIMIT);
     console.log(`[sendBatchTracked] Dispatching chunk ${chunkIndex}/${totalChunks} (${chunk.length} emails to Resend)...`);
     try {
       const result = await resend.batch.send(chunk);
