@@ -15,6 +15,11 @@ import { listCampaigns, updateCampaign, attachResendIds } from "@/lib/campaigns"
 import { logSend } from "@/lib/send-history";
 import { prisma } from "@/lib/prisma";
 import { dispatchScheduledBatch } from "@/lib/campaign-db";
+import {
+  STALE_SENDING_MS,
+  sweepFinishedCampaigns,
+  quarantineAmbiguousRecipients,
+} from "@/lib/dispatch";
 import { resolveProduct } from "@/lib/product-resolver";
 import { renderAndSendBatch } from "@/lib/email-engine";
 
@@ -23,6 +28,15 @@ let isTickerRunning = false;
 // ---------------------------------------------------------------------------
 // Circuit Breaker — in-memory, no DB schema change required
 // ---------------------------------------------------------------------------
+
+/**
+ * Wall-clock budget for one tick, shared across every due batch. Kept under the
+ * route's `maxDuration = 60` so the tick always gets to return cleanly.
+ */
+const TICK_BUDGET_MS = 50_000;
+
+/** Don't start another batch unless there's time for at least one Resend call. */
+const MIN_SLICE_BUDGET_MS = 5_000;
 
 /** Max consecutive failures before a batch is permanently marked "failed". */
 const MAX_BATCH_FAILURES = 3;
@@ -99,33 +113,43 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
 
   try {
     const now = new Date();
+    const tickStartedAt = Date.now();
     let dispatched = 0;
+    let skipped = 0;
 
-    // 1. Neon Postgres via Prisma — Primary dispatch store for multi-product batches
+    // 1. Neon Postgres via Prisma — primary dispatch store for multi-product batches
     try {
-      // Self-healing: Reset any recipients stuck in "sending" for > 5 minutes without a resendEmailId
-      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-      await prisma.campaignRecipient.updateMany({
-        where: {
-          status: "sending",
-          resendEmailId: null,
-          updatedAt: { lte: fiveMinutesAgo },
-        },
-        data: {
-          status: "scheduled",
-        },
-      });
+      // A batch is due when it has recipients that are queued and ready, OR when
+      // it has recipients wedged in "sending" with no Resend id for longer than
+      // any invocation could legitimately take (i.e. a dead worker). The old
+      // code pre-emptively reset those to "scheduled" in a separate write, which
+      // could race a send that was genuinely still running and cause a double
+      // send; claimSlice() in lib/dispatch.ts now re-claims them atomically
+      // instead, so the tick only has to *find* them.
+      const staleCutoff = new Date(now.getTime() - STALE_SENDING_MS);
+
+      // Park anything whose send outcome is unknowable before looking for work,
+      // so the claim below can never pick it up and email someone twice.
+      const quarantined = await quarantineAmbiguousRecipients();
+      if (quarantined > 0) {
+        console.warn(
+          `[scheduler] ⚠ ${quarantined} recipient(s) moved to needs_review — dispatch outcome unknown, not re-sent.`,
+        );
+      }
 
       const dueBatches = await prisma.campaignRecipient.findMany({
         where: {
-          status: { in: ["pending", "scheduled"] },
+          resendEmailId: null,
           campaign: {
             status: { notIn: ["paused", "cancelled", "completed", "manual"] },
           },
-          // Dispatch batches that are due OR have no scheduledFor (Batch 1 "Send Now" that got stuck)
           OR: [
-            { scheduledFor: { lte: now } },
-            { scheduledFor: null },
+            {
+              status: { in: ["pending", "scheduled"] },
+              // Due now, or a "Send Now" Batch 1 with no scheduled date.
+              OR: [{ scheduledFor: { lte: now } }, { scheduledFor: null }],
+            },
+            { status: "sending", updatedAt: { lte: staleCutoff } },
           ],
         },
         select: {
@@ -135,9 +159,24 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
         distinct: ["campaignId", "batchNumber"],
       });
 
+      if (dueBatches.length > 0) {
+        console.log(`[scheduler] ${dueBatches.length} due batch(es) to dispatch.`);
+      }
+
       for (const batch of dueBatches) {
+        // Share one wall-clock budget across the whole tick so a big campaign
+        // can't starve the others or overrun the invocation limit. Anything we
+        // don't reach stays queued for the next tick.
+        const elapsed = Date.now() - tickStartedAt;
+        const budgetMs = TICK_BUDGET_MS - elapsed;
+        if (budgetMs <= MIN_SLICE_BUDGET_MS) {
+          console.log("[scheduler] Tick budget exhausted — remaining batches deferred to next tick.");
+          skipped += dueBatches.length - dispatched;
+          break;
+        }
+
         try {
-          await dispatchScheduledBatch(batch.campaignId, batch.batchNumber);
+          await dispatchScheduledBatch(batch.campaignId, batch.batchNumber, { budgetMs });
           recordBatchSuccess(batch.campaignId, batch.batchNumber);
           dispatched++;
         } catch (batchErr) {
@@ -160,7 +199,18 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
       console.error("[scheduler] Database batch polling error:", dbErr);
     }
 
-    // 2. Legacy flat-file JSON store (deprecated)
+    // 2. Close out campaigns that fully dispatched but never had their status
+    //    advanced (e.g. a batch that ended with a couple of failed addresses).
+    try {
+      const reconciled = await sweepFinishedCampaigns();
+      if (reconciled > 0) {
+        console.log(`[scheduler] Reconciled ${reconciled} finished campaign(s).`);
+      }
+    } catch (sweepErr) {
+      console.error("[scheduler] Campaign reconciliation sweep failed:", sweepErr);
+    }
+
+    // 3. Legacy flat-file JSON store (deprecated)
     try {
       const legacyCampaigns = listCampaigns();
       const dueLegacy = legacyCampaigns.filter(
@@ -228,7 +278,7 @@ export async function checkAndRunScheduledCampaigns(): Promise<{
       // Non-fatal if legacy store doesn't exist
     }
 
-    return { dispatched, skipped: 0 };
+    return { dispatched, skipped };
   } finally {
     isTickerRunning = false;
   }

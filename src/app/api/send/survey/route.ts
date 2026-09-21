@@ -51,10 +51,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       sent: result.batch1SentCount,
       failed: 0,
+      // >0 means the request hit its time budget and the scheduler tick will
+      // finish the rest — not that anything was lost.
+      queued: result.batch1Remaining,
       campaignId: result.campaignId,
       batches: result.batches,
       totalTarget: result.totalTarget,
       excludedCount: result.excludedCount,
+      dispatchError: result.dispatchError,
     });
   } catch (err) {
     return NextResponse.json(

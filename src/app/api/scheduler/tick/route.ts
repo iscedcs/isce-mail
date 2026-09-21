@@ -1,17 +1,28 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { checkAndRunScheduledCampaigns } from "@/lib/scheduler";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 async function handleTick(req: NextRequest) {
-  // Optional: protect with a secret header or bearer token
+  // Accepts three callers:
+  //   - Vercel Cron       → Authorization: Bearer $CRON_SECRET
+  //   - GitHub Actions    → x-scheduler-secret: $SCHEDULER_SECRET
+  //   - manual curl       → either of the above
   const secret = process.env.SCHEDULER_SECRET;
-  if (secret) {
+  const cronSecret = process.env.CRON_SECRET;
+  const accepted = [secret, cronSecret].filter(Boolean) as string[];
+
+  if (accepted.length > 0) {
     const headerSecret = req.headers.get("x-scheduler-secret");
     const authHeader = req.headers.get("authorization");
     const bearerSecret = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
 
-    if (headerSecret !== secret && bearerSecret !== secret) {
+    const ok =
+      (headerSecret && accepted.includes(headerSecret)) ||
+      (bearerSecret && accepted.includes(bearerSecret));
+
+    if (!ok) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
