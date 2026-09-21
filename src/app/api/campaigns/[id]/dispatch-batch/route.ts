@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dispatchScheduledBatch } from "@/lib/campaign-db";
-import { prisma } from "@/lib/prisma";
+import { runBatchDispatch } from "@/lib/dispatch";
 import { checkAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -21,34 +20,45 @@ export async function POST(
     const body = await req.json().catch(() => ({}));
     const batchNumber = Number(body.batchNumber) || 1;
 
-    // Reset any "failed" recipients for this batch back to "scheduled"
-    // so a manual retry always works — even if the circuit breaker tripped.
-    await prisma.campaignRecipient.updateMany({
-      where: {
-        campaignId: id,
-        batchNumber,
-        status: "failed",
-        resendEmailId: null,
-      },
-      data: {
-        status: "scheduled",
-        scheduledFor: new Date(),
-      },
-    });
+    // A manual retry should pick up rows the circuit breaker parked as "failed",
+    // which the scheduler deliberately leaves alone.
+    const outcome = await runBatchDispatch(id, batchNumber, { includeFailed: true });
 
-    const result = await dispatchScheduledBatch(id, batchNumber);
-
-    if (result.sent === 0) {
+    if (outcome.slices === 0) {
       return NextResponse.json(
-        { ok: false, error: (result as any).message || `Batch ${batchNumber} was not dispatched (0 sent).` },
+        {
+          ok: false,
+          error: `Batch ${batchNumber} has no recipients left to dispatch.`,
+          result: outcome,
+        },
+        { status: 400 },
+      );
+    }
+
+    if (outcome.sent === 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            outcome.errors.join("; ") ||
+            `Batch ${batchNumber} was not dispatched (0 sent).`,
+          result: outcome,
+        },
         { status: 400 },
       );
     }
 
     return NextResponse.json({
       ok: true,
-      message: `Batch ${batchNumber} dispatched (${result.sent} sent).`,
-      result,
+      // `remaining > 0` means the invocation hit its time budget, not that
+      // anything failed — call this endpoint again to continue.
+      done: outcome.remaining === 0,
+      message:
+        `Batch ${batchNumber}: ${outcome.sent} sent` +
+        (outcome.failed > 0 ? `, ${outcome.failed} failed` : "") +
+        (outcome.remaining > 0 ? `, ${outcome.remaining} still queued` : "") +
+        ".",
+      result: outcome,
     });
   } catch (err: any) {
     console.error("[dispatch-batch] Error:", err);

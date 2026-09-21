@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { AdminLogin } from "@/components/admin/admin-login";
+import { CampaignAnalytics } from "@/components/shared/campaign-analytics";
+import { RecipientTable } from "@/components/shared/recipient-table";
 import { getAdminSessionAction } from "@/actions/admin-auth";
 import {
   Table,
@@ -23,8 +25,6 @@ import {
   Eye,
   MousePointerClick,
   AlertTriangle,
-  CheckCircle2,
-  XCircle,
   Clock,
   Send,
   ChevronLeft,
@@ -45,6 +45,8 @@ const STATUS_COLOR: Record<string, string> = {
   sent: "bg-green-100 text-green-800",
   sending: "bg-blue-100 text-blue-800",
   failed: "bg-red-100 text-red-800",
+  needs_review: "bg-amber-100 text-amber-800",
+  completed: "bg-green-100 text-green-800",
   cancelled: "bg-gray-100 text-gray-500",
 };
 
@@ -171,6 +173,13 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchAll, isAuthenticated]);
 
+  // Re-point the open campaign at its refreshed copy whenever the poll lands.
+  useEffect(() => {
+    setSelectedCampaign((current) =>
+      current ? (campaigns.find((c) => c.id === current.id) ?? current) : current,
+    );
+  }, [campaigns]);
+
   const openAudience = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setSelectedBatch("all");
@@ -185,21 +194,40 @@ export default function DashboardPage() {
   const handleDispatchBatch = async (campaignId: string, batchNumber: number) => {
     setDispatchingBatch(batchNumber);
     try {
-      const res = await fetch(`/api/campaigns/${campaignId}/dispatch-batch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batchNumber }),
-      });
-      const data = await res.json().catch(() => ({ error: `Server returned HTTP ${res.status}` }));
-      if (res.ok) {
-        fetchAll();
-        const updatedRes = await fetch(`/api/campaigns/${campaignId}`);
-        if (updatedRes.ok) {
-          const updated = await updatedRes.json();
-          setSelectedCampaign(updated);
+      // A batch larger than one serverless invocation can handle comes back with
+      // `done: false` and the rest still queued. Keep calling until it drains —
+      // each call picks up exactly where the last one stopped.
+      const MAX_ROUNDS = 40;
+
+      for (let round = 0; round < MAX_ROUNDS; round++) {
+        const res = await fetch(`/api/campaigns/${campaignId}/dispatch-batch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ batchNumber }),
+        });
+        const data = await res
+          .json()
+          .catch(() => ({ error: `Server returned HTTP ${res.status}` }));
+
+        if (!res.ok) {
+          alert(data.error || "Failed to dispatch batch");
+          break;
         }
-      } else {
-        alert(data.error || "Failed to dispatch batch");
+
+        if (data.done !== false) break;
+      }
+
+      // Re-read the LIST endpoint, not /api/campaigns/[id]: the detail route
+      // returns { campaign, batches }, a different shape from the normalized
+      // Campaign this panel renders against.
+      await fetchAll();
+      const listRes = await fetch("/api/campaigns");
+      if (listRes.ok) {
+        const list = await listRes.json();
+        const fresh = Array.isArray(list)
+          ? list.find((c: Campaign) => c.id === campaignId)
+          : null;
+        if (fresh) setSelectedCampaign(fresh);
       }
     } catch (e: any) {
       alert(e?.message || "Network error while dispatching batch.");
@@ -742,51 +770,13 @@ export default function DashboardPage() {
                         {selectedCampaign.recipients.length} recipients
                       </p>
                     </div>
-                    {/* Mini stats */}
-                    <div className="flex gap-2">
-                      {[
-                        {
-                          icon: <Send className="h-3.5 w-3.5" />,
-                          v: selectedCampaign.stats.sent,
-                          c: "bg-gray-100 text-gray-700",
-                          label: "sent",
-                        },
-                        {
-                          icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-                          v: selectedCampaign.stats.delivered,
-                          c: "bg-green-100 text-green-700",
-                          label: "delivered",
-                        },
-                        {
-                          icon: <Eye className="h-3.5 w-3.5" />,
-                          v: selectedCampaign.stats.opened,
-                          c: "bg-blue-100 text-blue-700",
-                          label: `${pct(selectedCampaign.stats.opened, selectedCampaign.stats.delivered)} open rate`,
-                        },
-                        {
-                          icon: <MousePointerClick className="h-3.5 w-3.5" />,
-                          v: selectedCampaign.stats.clicked,
-                          c: "bg-purple-100 text-purple-700",
-                          label: "clicked",
-                        },
-                        {
-                          icon: <XCircle className="h-3.5 w-3.5" />,
-                          v: selectedCampaign.stats.bounced,
-                          c: "bg-red-100 text-red-700",
-                          label: "bounced",
-                        },
-                      ].map((s) => (
-                        <div
-                          key={s.label}
-                          className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${s.c}`}
-                          title={s.label}
-                        >
-                          {s.icon}
-                          <span>{s.v}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
+
+                  {/* Performance visuals — funnel, rates, engagement curve.
+                      Numbers are derived from per-recipient timestamps rather
+                      than the Campaign.stats counters, which double-count when
+                      Resend sends an open without a prior delivered event. */}
+                  <CampaignAnalytics batches={(selectedCampaign.batches ?? []) as any} />
 
                   {/* Batch Segment Bar */}
                   {selectedCampaign.batches && selectedCampaign.batches.length > 1 && (
@@ -886,101 +876,14 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {/* Recipient table */}
-                  {(() => {
-                    const visibleRecipients = selectedCampaign.recipients.filter(
+                  {/* Recipient table — searchable, filterable, sorted, paged */}
+                  <RecipientTable
+                    recipients={selectedCampaign.recipients.filter(
                       (r) => selectedBatch === "all" || (r.batchNumber || 1) === selectedBatch,
-                    );
-                    return (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Name</TableHead>
-                            {selectedCampaign.batches && selectedCampaign.batches.length > 1 && (
-                              <TableHead>Batch</TableHead>
-                            )}
-                            <TableHead>Status</TableHead>
-                            <TableHead>Delivered</TableHead>
-                            <TableHead>Opened</TableHead>
-                            <TableHead>Clicked</TableHead>
-                            <TableHead>Bounced</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {visibleRecipients.map((r, i) => (
-                            <TableRow key={i}>
-                              <TableCell className="font-mono text-xs">{r.email}</TableCell>
-                              <TableCell className="text-sm">{r.firstname || ""}</TableCell>
-                              {selectedCampaign.batches && selectedCampaign.batches.length > 1 && (
-                                <TableCell>
-                                  <Badge variant="outline" className="text-[10px] font-semibold">
-                                    Batch #{r.batchNumber || 1}
-                                  </Badge>
-                                </TableCell>
-                              )}
-                              <TableCell>
-                                <span
-                                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                    STATUS_COLOR[r.status || (r.events.delivered ? "delivered" : "sent")] ?? "bg-gray-100"
-                                  }`}
-                                >
-                                  {r.status || (r.events.delivered ? "delivered" : "sent")}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                {r.events.delivered ? (
-                                  <span className="text-xs text-green-700 font-medium flex items-center gap-1">
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                    {new Date(r.events.delivered).toLocaleTimeString()}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {r.events.opened ? (
-                                  <span className="text-xs text-blue-700 font-medium flex items-center gap-1">
-                                    <Eye className="h-3.5 w-3.5" />
-                                    {new Date(r.events.opened).toLocaleTimeString()}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {r.events.clicked ? (
-                                  <span className="text-xs text-purple-700 font-medium flex items-center gap-1">
-                                    <MousePointerClick className="h-3.5 w-3.5" />
-                                    {new Date(r.events.clicked).toLocaleTimeString()}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {r.events.bounced ? (
-                                  <div>
-                                    <span className="text-xs text-red-700 font-medium flex items-center gap-1">
-                                      <XCircle className="h-3.5 w-3.5" />
-                                      {new Date(r.events.bounced).toLocaleTimeString()}
-                                    </span>
-                                    {r.events.bounceReason && (
-                                      <p className="text-[11px] text-red-600 font-medium mt-0.5 max-w-[180px]">
-                                        {r.events.bounceReason}
-                                      </p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    );
-                  })()}
+                    )}
+                    showBatch={!!selectedCampaign.batches && selectedCampaign.batches.length > 1}
+                    campaignSubject={selectedCampaign.subject}
+                  />
                 </>
               )}
             </div>

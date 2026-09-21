@@ -196,8 +196,19 @@ model CampaignRecipient {
   firstName     String?
   batchNumber   Int       @default(1)
   scheduledFor  DateTime?
-  status        String    @default("pending") // "pending" | "scheduled" | "sending" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "suppressed" | "failed" | "cancelled"
+  status        String    @default("pending") // "pending" | "scheduled" | "sending" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "suppressed" | "failed" | "needs_review" | "cancelled"
   resendEmailId String?
+
+  // Duplicate-send protection.
+  //
+  // Incremented every time a worker claims this row, and decremented again when
+  // a worker *deliberately* releases it (i.e. we know Resend did not accept it).
+  // So a non-zero count on a row that went stale means an attempt whose outcome
+  // we never learned — the worker vanished between the Resend call and writing
+  // the id back. Those rows are quarantined as "needs_review" rather than blindly
+  // re-sent, which is what stops a recipient receiving the same email twice.
+  attemptCount  Int       @default(0)
+  lastAttemptAt DateTime?
   bounceReason  String?
   sentAt        DateTime?
   deliveredAt   DateTime?
