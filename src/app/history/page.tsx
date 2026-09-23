@@ -203,7 +203,13 @@ export default function DashboardPage() {
         const res = await fetch(`/api/campaigns/${campaignId}/dispatch-batch`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ batchNumber }),
+          // Explicit manual override: requeue failed/needs_review rows AND send
+          // ahead of the batch's scheduled date. That is what the button means.
+          body: JSON.stringify({
+            batchNumber,
+            includeFailed: true,
+            ignoreSchedule: true,
+          }),
         });
         const data = await res
           .json()

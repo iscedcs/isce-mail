@@ -24,6 +24,13 @@ export interface CreateCampaignParams {
    * stays queued for the scheduler tick. Defaults to DEFAULT_BUDGET_MS (45s).
    */
   dispatchBudgetMs?: number;
+  /**
+   * Absolute deadline (epoch ms) for the whole request, set by the route the
+   * moment it is invoked. Preferred over `dispatchBudgetMs`: creating the
+   * campaign can take several seconds, and that time has to come out of the
+   * same 60s serverless ceiling the dispatch does.
+   */
+  deadlineAt?: number;
 }
 
 export interface BatchInfo {
@@ -71,7 +78,8 @@ export async function createCampaignWithBatches(
   }
 
   const batchSize = params.batchSize || productDailyQuota;
-  const dispatchBudgetMs = params.dispatchBudgetMs ?? DEFAULT_BUDGET_MS;
+  const dispatchDeadlineAt =
+    params.deadlineAt ?? Date.now() + (params.dispatchBudgetMs ?? DEFAULT_BUDGET_MS);
 
   // Deduplicate incoming recipients
   const seenEmails = new Set<string>();
@@ -211,7 +219,9 @@ export async function createCampaignWithBatches(
   if (!isFutureScheduled) {
     batches[0].sentAt = new Date().toISOString();
     try {
-      const outcome = await runBatchDispatch(campaignId, 1, { budgetMs: dispatchBudgetMs });
+      const outcome = await runBatchDispatch(campaignId, 1, {
+        deadlineAt: dispatchDeadlineAt,
+      });
       batch1Sent = outcome.sent;
       batch1Remaining = outcome.remaining;
       if (outcome.errors.length > 0) {

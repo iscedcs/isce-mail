@@ -74,7 +74,7 @@ export default function CoursePromoForm() {
     setShowConfirm(true);
   };
 
-  const confirmSend = async () => {
+  const confirmSend = async (opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -93,6 +93,8 @@ export default function CoursePromoForm() {
       message: form.message,
       link: form.link,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
       templateProps: {
         courseTitle: form.courseTitle,
         originalPrice: form.originalPrice,
@@ -109,7 +111,7 @@ export default function CoursePromoForm() {
     }
   };
 
-  const handleSchedule = async (scheduledFor: string) => {
+  const handleSchedule = async (scheduledFor: string, opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -126,6 +128,8 @@ export default function CoursePromoForm() {
       message: form.message,
       link: form.link,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
       scheduledFor,
       templateProps: {
         courseTitle: form.courseTitle,

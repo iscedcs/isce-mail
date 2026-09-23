@@ -79,7 +79,7 @@ export default function CurriculumForm() {
     setShowConfirm(true);
   };
 
-  const confirmSend = async () => {
+  const confirmSend = async (opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -98,6 +98,8 @@ export default function CurriculumForm() {
       message: form.message,
       link: form.link,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
       templateProps: {
         courseName: form.courseName,
         pdfUrl: form.pdfUrl,
@@ -109,7 +111,7 @@ export default function CurriculumForm() {
     else setError(result.message);
   };
 
-  const handleSchedule = async (scheduledFor: string) => {
+  const handleSchedule = async (scheduledFor: string, opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -126,6 +128,8 @@ export default function CurriculumForm() {
       message: form.message,
       link: form.link,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
       scheduledFor,
       templateProps: {
         courseName: form.courseName,

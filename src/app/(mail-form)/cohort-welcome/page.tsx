@@ -74,7 +74,7 @@ export default function CohortWelcomeForm() {
     setShowConfirm(true);
   };
 
-  const confirmSend = async () => {
+  const confirmSend = async (opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -93,6 +93,8 @@ export default function CohortWelcomeForm() {
       message: form.message,
       link: form.link,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
       templateProps: {
         cohortName: form.cohortName,
         startDate: form.startDate,
@@ -106,7 +108,7 @@ export default function CohortWelcomeForm() {
     else setError(result.message);
   };
 
-  const handleSchedule = async (scheduledFor: string) => {
+  const handleSchedule = async (scheduledFor: string, opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -123,6 +125,8 @@ export default function CohortWelcomeForm() {
       message: form.message,
       link: form.link,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
       scheduledFor,
       templateProps: {
         cohortName: form.cohortName,

@@ -33,14 +33,49 @@ import {
   isDeliverableEmail,
 } from "@/lib/mail-action/shared";
 
-/** One slice == one Resend `batch.send` call. */
-export const SLICE_SIZE = RESEND_BATCH_LIMIT;
+/**
+ * One slice == one Resend `batch.send` call.
+ *
+ * Deliberately well under Resend's batch ceiling of 100. The cost of a slice is
+ * dominated by rendering, not by the HTTP call: the Resend SDK renders each
+ * React Email template to HTML before posting, and a production campaign
+ * measured ~0.47s per email — so a 100-email slice took ~47s and could not fit
+ * inside Vercel's 60s function ceiling. The invocation died with
+ * FUNCTION_INVOCATION_TIMEOUT mid-campaign and the cron had to finish it.
+ *
+ * At 40 a slice costs roughly 19s, which leaves room for two slices in a
+ * 45s window plus the response. Throughput is render-bound either way, so a
+ * smaller slice costs little and buys finer progress reporting and a much
+ * larger safety margin. Override with DISPATCH_SLICE_SIZE if template cost
+ * changes materially.
+ */
+export const SLICE_SIZE = Math.min(
+  RESEND_BATCH_LIMIT,
+  Math.max(1, Number(process.env.DISPATCH_SLICE_SIZE) || 40),
+);
 
 /**
  * Wall-clock budget for a single invocation. Routes declare `maxDuration = 60`,
  * so we stop at 45s and leave headroom to persist results and respond.
  */
 export const DEFAULT_BUDGET_MS = 45_000;
+
+/**
+ * Assumed cost of one slice before we have measured a real one.
+ *
+ * Derived from the measured ~0.47s per email, rounded up to 0.55s for a cold
+ * start. The budget check happens *before* a slice starts, so without reserving
+ * this much headroom a slice beginning near the deadline runs past Vercel's 60s
+ * ceiling and the whole invocation dies with FUNCTION_INVOCATION_TIMEOUT —
+ * taking the HTTP response with it, even though the emails themselves went out.
+ *
+ * After the first slice this is replaced by the slowest duration actually
+ * observed, so it self-corrects for heavier or lighter templates.
+ */
+const INITIAL_SLICE_ESTIMATE_MS = Math.round(SLICE_SIZE * 550);
+
+/** Extra margin on top of the slice estimate, for persistence and the response. */
+const SAFETY_MARGIN_MS = 3_000;
 
 /**
  * A row stuck in "sending" with no Resend id for longer than this is assumed to
@@ -83,11 +118,30 @@ export interface DispatchOptions {
   /** Wall-clock budget in ms. Defaults to {@link DEFAULT_BUDGET_MS}. */
   budgetMs?: number;
   /**
+   * Absolute deadline (epoch ms), which wins over `budgetMs`.
+   *
+   * Callers should compute this at the *start of the HTTP request*, not here —
+   * creating a campaign (contact upserts, suppression lookups, inserting a row
+   * per recipient) can burn several seconds before dispatch even begins, and a
+   * budget measured from inside this function is blind to all of it.
+   */
+  deadlineAt?: number;
+  /**
    * Also re-claim rows the circuit breaker previously marked "failed".
    * Only manual retries should set this — otherwise the scheduler would retry
    * permanently-failing batches forever and the breaker would never hold.
    */
   includeFailed?: boolean;
+  /**
+   * Send a batch before its scheduled time. Defaults to false.
+   *
+   * Only the History "Send Batch N Now" button sets this: it is the one place a
+   * human explicitly overrides the schedule. Everything else — the cron tick,
+   * the send form's progress loop — must respect `scheduledFor`, so a campaign
+   * booked for next Tuesday cannot go out today because some other code path
+   * asked for the wrong batch number.
+   */
+  ignoreSchedule?: boolean;
 }
 
 export interface DispatchOutcome {
@@ -118,8 +172,17 @@ async function claimSlice(
   campaignId: string,
   batchNumber: number,
   limit: number,
+  ignoreSchedule: boolean,
 ): Promise<ClaimedRecipient[]> {
   const staleCutoff = new Date(Date.now() - STALE_SENDING_MS);
+
+  // The scheduler already filters for due batches before calling us, but that
+  // made "is this batch allowed to send yet?" a property of the caller rather
+  // than of the data. Enforcing it here means no future batch can go out early,
+  // whichever path asks for it.
+  const scheduleGuard = ignoreSchedule
+    ? Prisma.sql`TRUE`
+    : Prisma.sql`(r."scheduledFor" IS NULL OR r."scheduledFor" <= NOW())`;
 
   const rows = await prisma.$queryRaw<ClaimedRecipient[]>`
     UPDATE "CampaignRecipient" AS cr
@@ -138,6 +201,7 @@ async function claimSlice(
           OR (r.status = 'sending' AND r."updatedAt" < ${staleCutoff})
         )
         AND r."attemptCount" < ${MAX_AMBIGUOUS_ATTEMPTS}
+        AND ${scheduleGuard}
       ORDER BY r."createdAt" ASC
       FOR UPDATE SKIP LOCKED
       LIMIT ${limit}
@@ -359,9 +423,19 @@ export async function runBatchDispatch(
   batchNumber: number,
   options: DispatchOptions = {},
 ): Promise<DispatchOutcome> {
-  const budgetMs = options.budgetMs ?? DEFAULT_BUDGET_MS;
   const includeFailed = options.includeFailed ?? false;
+  const ignoreSchedule = options.ignoreSchedule ?? false;
   const startedAt = Date.now();
+  const deadlineAt =
+    options.deadlineAt ?? startedAt + (options.budgetMs ?? DEFAULT_BUDGET_MS);
+
+  // The constant only has to govern the FIRST slice. After that we reserve
+  // against the slowest slice actually observed — the slowest, not the average,
+  // because one slow slice is what overruns the ceiling. Letting the estimate
+  // come down matters: templates that render quickly would otherwise keep
+  // reserving the pessimistic constant and stop far short of the deadline.
+  let observedMaxMs = 0;
+  let sliceEstimateMs = INITIAL_SLICE_ESTIMATE_MS;
 
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
   if (!campaign) throw new Error(`Campaign ${campaignId} not found`);
@@ -412,12 +486,24 @@ export async function runBatchDispatch(
 
   try {
     while (true) {
-      if (Date.now() - startedAt >= budgetMs) {
+      // Stop when the NEXT slice would not finish in time, not when we have
+      // already run out — the remainder stays queued for the cron tick.
+      const projectedFinish = Date.now() + sliceEstimateMs + SAFETY_MARGIN_MS;
+      if (projectedFinish > deadlineAt) {
         outcome.timedOut = true;
+        console.log(
+          `[dispatch] campaign=${campaignId} batch=${batchNumber} — stopping with ` +
+            `${Math.max(0, deadlineAt - Date.now())}ms left; a slice needs ~${sliceEstimateMs}ms.`,
+        );
         break;
       }
 
-        const claimed = await claimSlice(campaignId, batchNumber, SLICE_SIZE);
+        const claimed = await claimSlice(
+        campaignId,
+        batchNumber,
+        SLICE_SIZE,
+        ignoreSchedule,
+      );
       if (claimed.length === 0) break;
 
       if (claimed.every((r) => seenIds.has(r.id))) {
@@ -451,6 +537,7 @@ export async function runBatchDispatch(
           `claimed=${claimed.length} sendable=${sendable.length} — calling Resend…`,
       );
 
+      const sliceStartedAt = Date.now();
       let result;
       try {
         result = await renderAndSendBatch(
@@ -500,9 +587,13 @@ export async function runBatchDispatch(
       if (result.errors?.length) outcome.errors.push(...result.errors);
       outcome.slices++;
 
+      const sliceMs = Date.now() - sliceStartedAt;
+      observedMaxMs = Math.max(observedMaxMs, sliceMs);
+      sliceEstimateMs = observedMaxMs;
+
       console.log(
         `[dispatch] campaign=${campaignId} batch=${batchNumber} slice=${outcome.slices} ` +
-          `→ ${sentCount} sent, ${failedCount} failed`,
+          `→ ${sentCount} sent, ${failedCount} failed in ${sliceMs}ms`,
       );
 
       // Queue drained — a short slice means there was nothing more to claim.
