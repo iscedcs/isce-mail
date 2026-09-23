@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { LoaderCircle, CheckCircle2, AlertCircle, UploadCloud, RefreshCw, Info } from "lucide-react";
-import type { SyncedRecipient } from "@/lib/palmtechniq-users";
+import type { SyncedRecipient } from "@/lib/audience-sync";
 
 export type RecipientItem = { email: string; name: string; url?: string };
 
@@ -13,16 +13,13 @@ export default function CSVUploader({
   onSyncedCsv,
   onSyncedRecipients,
   productSlug = "palmtechniq",
-  productName = "PalmTechniq",
-  hasSyncUrl = true,
 }: {
   handleUpload?: (e: any) => void;
   onSyncedCsv?: (emailsCsv: string) => void;
   /** Called with the full recipients array including names for personalisation. */
   onSyncedRecipients?: (recipients: RecipientItem[]) => void;
+  /** Brand the campaign sends as. Used only to preselect a matching source. */
   productSlug?: string;
-  productName?: string;
-  hasSyncUrl?: boolean;
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -31,6 +28,12 @@ export default function CSVUploader({
     fileName: string;
     invalidCount?: number;
   } | null>(null);
+
+  // Which products can be synced from, and which the operator has ticked.
+  // Driven entirely by /api/recipients/sources, so a newly onboarded product
+  // shows up here without a code change.
+  const [sources, setSources] = useState<{ slug: string; name: string }[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
@@ -93,6 +96,37 @@ export default function CSVUploader({
     }
   };
 
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/recipients/sources")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!alive || !Array.isArray(data?.sources)) return;
+        setSources(data.sources);
+        setSelected((current) => {
+          if (current.length > 0) return current;
+          // Default to the brand being sent as, when it happens to be a source.
+          const own = data.sources.find(
+            (s: { slug: string }) =>
+              s.slug.toLowerCase() === productSlug.toLowerCase(),
+          );
+          return own ? [own.slug] : [];
+        });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [productSlug]);
+
+  const toggleSource = (slug: string) => {
+    setSelected((current) =>
+      current.includes(slug)
+        ? current.filter((s) => s !== slug)
+        : [...current, slug],
+    );
+  };
+
   const syncUsers = async (forceRefresh = false) => {
     try {
       setSyncError("");
@@ -100,9 +134,15 @@ export default function CSVUploader({
       setSyncMeta(null);
       setIsSyncing(true);
 
-      const targetSlug = productSlug || "palmtechniq";
+      const targets = selected.length > 0 ? selected : [productSlug].filter(Boolean);
+      if (targets.length === 0) {
+        setSyncError("Pick at least one source to sync users from.");
+        setIsSyncing(false);
+        return;
+      }
+
       const refreshParam = forceRefresh ? "&refresh=1" : "";
-      const url = `/api/recipients/sync?product=${encodeURIComponent(targetSlug)}${refreshParam}`;
+      const url = `/api/recipients/sync?sources=${encodeURIComponent(targets.join(","))}${refreshParam}`;
 
       const response = await fetch(url, { method: "GET" });
 
@@ -147,10 +187,8 @@ export default function CSVUploader({
     }
   };
 
-  const showSyncButton =
-    hasSyncUrl ||
-    productSlug.toLowerCase() === "palmtechniq" ||
-    productSlug.toLowerCase() === "gada";
+  // No hardcoded product list any more — if anything is configured, offer it.
+  const showSyncButton = sources.length > 0;
 
   return (
     <div className="space-y-2">
@@ -188,13 +226,54 @@ export default function CSVUploader({
       )}
 
       {showSyncButton && (
-        <div className="flex items-center gap-2 pt-1">
+        <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-2.5 space-y-2">
+          <p className="text-[11px] font-medium text-slate-600">
+            Sync users from
+            {sources.length > 1 && (
+              <span className="font-normal text-slate-400">
+                {" "}· pick one or more, merged and deduplicated by email
+              </span>
+            )}
+          </p>
+
+          <div className="flex flex-wrap gap-1.5">
+            {sources.map((src) => {
+              const on = selected.includes(src.slug);
+              return (
+                <button
+                  key={src.slug}
+                  type="button"
+                  onClick={() => toggleSource(src.slug)}
+                  disabled={isSyncing}
+                  aria-pressed={on}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 ${
+                    on
+                      ? "border-indigo-300 bg-indigo-600 text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 rounded-[3px] border ${
+                      on ? "border-white bg-white/90" : "border-slate-300"
+                    }`}
+                  >
+                    {on && (
+                      <CheckCircle2 className="h-3 w-3 -m-px text-indigo-600" />
+                    )}
+                  </span>
+                  {src.name}
+                </button>
+              );
+            })}
+          </div>
+
+        <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => syncUsers(false)}
-            disabled={isSyncing || isUploading}
+            disabled={isSyncing || isUploading || selected.length === 0}
             className="text-xs"
           >
             {isSyncing ? (
@@ -202,8 +281,12 @@ export default function CSVUploader({
                 <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 Syncing...
               </>
+            ) : selected.length === 0 ? (
+              "Select a source"
+            ) : selected.length === 1 ? (
+              `Sync ${sources.find((s) => s.slug === selected[0])?.name ?? "Users"}`
             ) : (
-              `Sync ${productName || "Audience"} Users`
+              `Sync ${selected.length} sources`
             )}
           </Button>
           {syncMeta && syncMeta.fromCache && (
@@ -218,6 +301,7 @@ export default function CSVUploader({
               <RefreshCw className="h-3 w-3" /> Cached · Refresh
             </Button>
           )}
+        </div>
         </div>
       )}
 
