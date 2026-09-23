@@ -65,7 +65,7 @@ export default function HolidayForm() {
     setShowConfirm(true);
   };
 
-  const confirmSend = async () => {
+  const confirmSend = async (opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -82,13 +82,15 @@ export default function HolidayForm() {
       link: form.link,
       image: form.image,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
     });
 
     if (result.ok) setSuccess(result.message);
     else setError(result.message);
   };
 
-  const handleSchedule = async (scheduledFor: string) => {
+  const handleSchedule = async (scheduledFor: string, opts?: { batchSize?: number }) => {
     setShowConfirm(false);
     setError(undefined);
     setSuccess(undefined);
@@ -103,6 +105,8 @@ export default function HolidayForm() {
       link: form.link,
       image: form.image,
       recipients: recipientList,
+      // Set when 'send as one batch' is ticked; ignores the product's daily quota.
+      batchSize: opts?.batchSize,
       scheduledFor,
     });
     if (result.ok) setSuccess(result.message);

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  AlertTriangle,
   Building2,
   Calendar,
   CalendarClock,
@@ -37,7 +38,7 @@ const KNOWN_DEFAULT_QUOTAS: Record<string, { planTier: string; dailyQuota: numbe
 interface ConfirmSendDialogProps {
   open: boolean;
   onConfirm: (options?: { batchSize?: number }) => void;
-  onSchedule: (scheduledFor: string) => void;
+  onSchedule: (scheduledFor: string, opts?: { batchSize?: number }) => void;
   onCancel: () => void;
   recipientCount: number;
   subject: string;
@@ -64,15 +65,26 @@ export default function ConfirmSendDialog({
   const [scheduledTime, setScheduledTime] = useState("");
   const [overrideMultiBatch, setOverrideMultiBatch] = useState(false);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  // Local calendar date, not the UTC one — toISOString() shifts the day for
+  // anyone whose offset crosses midnight, blocking or allowing the wrong date.
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
 
   const scheduledFor =
     mode === "later" && scheduledDate && scheduledTime
       ? new Date(`${scheduledDate}T${scheduledTime}`).toISOString()
       : null;
 
+  // A time in the past is not a schedule — the server would treat it as
+  // "send now" and the campaign would go out immediately, which is the
+  // opposite of what someone picking a date intends.
+  const scheduledIsPast = !!scheduledFor && new Date(scheduledFor).getTime() <= Date.now();
+
   const canSubmit =
-    !isPending && (mode === "now" || (!!scheduledDate && !!scheduledTime));
+    !isPending &&
+    (mode === "now" || (!!scheduledDate && !!scheduledTime && !scheduledIsPast));
 
   const normalizedBasis = (basis || "").trim().toLowerCase();
   const knownFallback = KNOWN_DEFAULT_QUOTAS[normalizedBasis] || {
@@ -120,8 +132,13 @@ export default function ConfirmSendDialog({
   const handleSubmit = () => {
     if (mode === "now") {
       onConfirm(overrideMultiBatch ? { batchSize: recipientCount } : undefined);
-    } else if (scheduledFor) {
-      onSchedule(scheduledFor);
+    } else if (scheduledFor && !scheduledIsPast) {
+      // The override was previously dropped here, so ticking "send as one
+      // batch" and then scheduling silently fell back to daily batching.
+      onSchedule(
+        scheduledFor,
+        overrideMultiBatch ? { batchSize: recipientCount } : undefined,
+      );
     }
   };
 
@@ -226,9 +243,9 @@ export default function ConfirmSendDialog({
 
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-700 shadow-2xs">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Quota:</span>
+                  <span>Per-product cap:</span>
                   <span className="font-semibold text-emerald-700">
-                    {tierName ? `${tierName} • ` : ""}{batchSize.toLocaleString()}/day limit
+                    {tierName ? `${tierName} • ` : ""}{batchSize.toLocaleString()}/day
                   </span>
                 </div>
               </div>
@@ -252,8 +269,11 @@ export default function ConfirmSendDialog({
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Your audience of <strong>{recipientCount.toLocaleString()}</strong> exceeds the {batchSize.toLocaleString()}/day {tierName ? `${tierName} ` : ""}plan limit.
-                  Deliveries are split automatically into consecutive daily batches to protect your domain reputation:
+                  Your audience of <strong>{recipientCount.toLocaleString()}</strong> exceeds the{" "}
+                  <strong>{batchSize.toLocaleString()}/day</strong> cap set for this product in the admin console
+                  (not a limit from Resend). Deliveries are split into consecutive daily batches.
+                  Tick the override below to send everything in one go instead, or raise the
+                  product&apos;s daily cap:
                 </p>
 
                 {/* Batch Cards Grid */}
@@ -356,7 +376,7 @@ export default function ConfirmSendDialog({
                       {overrideMultiBatch ? "Manual Override Active • " : ""}Within {tierName ? `${tierName} ` : ""}Daily Quota Limit
                     </p>
                     <p className="text-xs text-emerald-700 mt-0.5">
-                      All {recipientCount.toLocaleString()} emails fit inside your {overrideMultiBatch ? "custom override" : `daily ${batchSize.toLocaleString()}-email`} dispatch and will send in a single batch.
+                      All {recipientCount.toLocaleString()} emails fit inside {overrideMultiBatch ? "your manual override" : `this product's ${batchSize.toLocaleString()}/day cap`} and go out together in one batch — not spread across days.
                     </p>
                   </div>
                 </div>
@@ -433,7 +453,17 @@ export default function ConfirmSendDialog({
                     />
                   </div>
                 </div>
-                {scheduledDate && scheduledTime && (
+                {scheduledDate && scheduledTime && scheduledIsPast && (
+                  <div className="flex items-center gap-2 text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                    <span>
+                      That time has already passed. Pick a future time — otherwise
+                      this campaign would send immediately.
+                    </span>
+                  </div>
+                )}
+
+                {scheduledDate && scheduledTime && !scheduledIsPast && (
                   <div className="flex items-center gap-2 text-xs text-indigo-800 bg-white/90 border border-indigo-100 rounded-lg px-3 py-2">
                     <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                     <span>
@@ -445,7 +475,10 @@ export default function ConfirmSendDialog({
                           dateStyle: "medium",
                           timeStyle: "short",
                         })}
-                      </strong>
+                      </strong>{" "}
+                      <span className="text-indigo-500">
+                        ({Intl.DateTimeFormat().resolvedOptions().timeZone} · checked every minute, so it may go out up to a minute after)
+                      </span>
                       {isMultiBatch && " · Next batches follow in 24-hour intervals."}
                     </span>
                   </div>

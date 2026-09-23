@@ -26,6 +26,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Stamped before any work so campaign creation counts against the same
+  // ceiling as the dispatch. maxDuration is 60s; we hand back the response by
+  // ~45s and leave the rest of Batch 1 queued for the scheduler tick.
+  const deadlineAt = Date.now() + 45_000;
+
   try {
     const body = await req.json();
 
@@ -58,6 +63,7 @@ export async function POST(req: NextRequest) {
       recipients: body.recipients,
       batchSize: body.batchSize ? Number(body.batchSize) : undefined,
       scheduledFor: body.scheduledFor,
+      deadlineAt,
     });
 
     return NextResponse.json(

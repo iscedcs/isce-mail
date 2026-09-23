@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,7 +17,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        {/* Every toast.* call in the app was a no-op until this was mounted —
+            admin login, the admin header, products and templates all raise
+            toasts that never rendered. */}
+        <Toaster richColors closeButton position="top-right" />
+      </body>
     </html>
   );
 }

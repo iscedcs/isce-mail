@@ -16,13 +16,26 @@ export async function POST(
       { status: 401 },
     );
   }
+  const deadlineAt = Date.now() + 45_000;
+
   try {
     const body = await req.json().catch(() => ({}));
     const batchNumber = Number(body.batchNumber) || 1;
 
-    // A manual retry should pick up rows the circuit breaker parked as "failed",
-    // which the scheduler deliberately leaves alone.
-    const outcome = await runBatchDispatch(id, batchNumber, { includeFailed: true });
+    // Requeuing rows parked as "failed" or "needs_review" risks a duplicate, so
+    // it is opt-in: the History "Send Batch N Now" button asks for it, the
+    // send-form's progress loop does not.
+    const includeFailed = body.includeFailed === true;
+
+    // "Send Batch N Now" deliberately overrides the schedule; the send form's
+    // progress loop must not, or it could push a future batch out early.
+    const ignoreSchedule = body.ignoreSchedule === true;
+
+    const outcome = await runBatchDispatch(id, batchNumber, {
+      includeFailed,
+      ignoreSchedule,
+      deadlineAt,
+    });
 
     if (outcome.slices === 0) {
       return NextResponse.json(

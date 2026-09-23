@@ -7,6 +7,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  // Stamped before any work so campaign creation counts against the same 60s
+  // ceiling as the dispatch does.
+  const deadlineAt = Date.now() + 45_000;
+
   const body = await req.json();
 
   const rawRecipients = body.recipients?.length
@@ -39,6 +43,7 @@ export async function POST(req: NextRequest) {
       message: body.message ?? "",
       link: body.link,
       recipients,
+      deadlineAt,
     });
 
     logSend({
