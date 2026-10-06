@@ -54,13 +54,13 @@ export function AdminHeader({
       label: "Products & Brands",
       href: "/admin/products",
       icon: Building2,
-      active: pathname.startsWith("/admin/products"),
+      active: pathname?.startsWith("/admin/products"),
     },
     {
       label: "Email Templates",
       href: "/admin/templates",
       icon: FileCode2,
-      active: pathname.startsWith("/admin/templates"),
+      active: pathname?.startsWith("/admin/templates"),
     },
   ];
 

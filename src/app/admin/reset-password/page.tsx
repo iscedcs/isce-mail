@@ -14,7 +14,7 @@ import { resetPasswordAction } from "@/actions/admin-auth";
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const tokenFromUrl = searchParams.get("token") || "";
+  const tokenFromUrl = searchParams?.get("token") ?? "";
 
   const [token, setToken] = useState(tokenFromUrl);
   const [newPassword, setNewPassword] = useState("");
