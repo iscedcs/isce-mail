@@ -34,26 +34,18 @@ export interface EmailPayload {
 }
 
 // ---------------------------------------------------------------------------
-// Resend instances — legacy .env-based instances for backward compat.
-// New code should use getResendForProduct() from product-resolver.ts
+// Legacy env-based Resend instances were removed.
+//
+// They constructed `new Resend(process.env.XXX_RESEND_API_KEY)` at module load.
+// Resend's SDK throws when the key is undefined, and module load happens during
+// Next's "Collecting page data" build phase — so a missing env var at BUILD
+// time crashed the whole deploy with "Failed to collect page data for
+// /api/campaigns" (even though the key is only needed at RUN time).
+//
+// The live path has used `getResendForProduct(product)` (per-product encrypted
+// key loaded from the Product table) since the multi-tenant rewrite. The
+// deprecated helpers that lived here had no remaining callers.
 // ---------------------------------------------------------------------------
-
-const palmtechniqResend = new Resend(process.env.PALMTECHNIQ_RESEND_API_KEY);
-const isceResend = new Resend(process.env.ISCE_RESEND_API_KEY);
-
-/** @deprecated Use getResendForProduct(product) from product-resolver.ts */
-export function getResendInstance(basis: ProductSlug): Resend {
-  return basis === "PalmTechniq" || basis.toLowerCase() === "palmtechniq"
-    ? palmtechniqResend
-    : isceResend;
-}
-
-/** @deprecated Use getSenderForProduct(product) from product-resolver.ts */
-export function getSenderAddress(basis: ProductSlug): string {
-  return basis === "PalmTechniq" || basis.toLowerCase() === "palmtechniq"
-    ? "PalmTechnIQ <support@palmtechniq.com>"
-    : "ISCE Team <hello@isce.tech>";
-}
 
 // ---------------------------------------------------------------------------
 // Personalisation

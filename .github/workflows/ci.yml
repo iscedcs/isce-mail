@@ -1,0 +1,100 @@
+# -----------------------------------------------------------------------------
+# CI — reproduces Vercel's build on every push and PR to dev / main.
+#
+# Why this exists: Vercel's build logs are often hard to catch mid-deploy and
+# easy to miss when they do appear. This runs the exact same build locally in
+# GitHub Actions on every push, so a failing deploy shows up as a red check on
+# the commit that caused it instead of as a silent production outage.
+#
+# What's checked:
+#   - prisma generate   (catches schema breakage)
+#   - tsc --noEmit      (catches type errors Next's build also catches, but
+#                        earlier and with better error locations)
+#   - pnpm build        (the actual next build — the only step that catches
+#                        page-data collection failures like the /_document bug
+#                        on Node 22)
+#
+# What's NOT checked:
+#   - Runtime failures that only show up after deploy (bad env var, upstream
+#     down, migrations not run). CI can't catch those; the dispatch logs can.
+# -----------------------------------------------------------------------------
+
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  # Lets you re-run manually from the Actions tab without pushing an empty commit.
+  workflow_dispatch:
+
+concurrency:
+  # Cancel older runs on the same branch — a newer push supersedes an older one.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (Node 22, pnpm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Dummy connection string. `prisma generate` reads this through
+      # prisma.config.ts (which non-null-asserts it) but never opens a
+      # connection. The Next build does not query the DB at build time either —
+      # routes with `dynamic = "force-dynamic"` skip static generation, and the
+      # ones that don't never dereference the Prisma client at module load.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      # Match Vercel's build-time Node runtime so CI reproduces the exact
+      # unhandled-rejection semantics that broke the /_document check.
+      NODE_VERSION: "22"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # Pinned to match the local dev version (pnpm 11.x). Bumping this is a
+          # deliberate change — do it with a matching bump in packageManager.
+          version: 11
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        # --frozen-lockfile fails the build if pnpm-lock.yaml and package.json
+        # drift — exactly the drift that silently breaks reproducibility.
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm exec prisma generate
+
+      - name: Type-check
+        # Separate step from the build so a type error shows up as its own
+        # failed step with a clearer error, instead of hidden inside Next's
+        # compile output.
+        run: pnpm exec tsc --noEmit
+
+      - name: Next build
+        # Same `pnpm build` Vercel runs. Catches:
+        #   - the /_document unhandled rejection on Node 22
+        #   - any Next compile or page-data collection error
+        #   - any ESLint-blocking rule the project enables
+        run: pnpm build
+
+      - name: Report build size
+        # Non-blocking visibility into whether a change ballooned the bundle.
+        # `continue-on-error` so a weird `du` on the runner never fails CI.
+        if: success()
+        continue-on-error: true
+        run: |
+          echo "## Build size" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          du -sh .next 2>/dev/null | sed 's/\.next/next output/' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendBulkEmailTracked } from "@/lib/mail-action/course-promo/mail";
 import { parseEmailString, BatchRecipient } from "@/lib/mail-action/shared";
 import { logSend } from "@/lib/send-history";
 import { createCampaignWithBatches } from "@/lib/campaign-db";
