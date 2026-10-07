@@ -1,69 +1,16 @@
-import PtHolidayMail from "../../../../emails/templates/palmtechniq/holiday";
-import ISCEHolidayMail from "../../../../emails/templates/isce/holiday";
-import {
-  IBasis,
-  BatchRecipient,
-  EmailPayload,
-  getResendInstance,
-  getSenderAddress,
-  interpolate,
-  sendBatch,
-  sendBatchTracked,
-  BatchResult,
-} from "../shared";
-
-export type { IBasis };
-export const revalidate = 0;
-
-export const sendBulkEmail = async (
-  recipients: BatchRecipient[],
-  subject: string,
-  basis: IBasis,
-  message: string,
-  image: string,
-): Promise<number> => {
-  const resend = getResendInstance(basis);
-  const from = getSenderAddress(basis);
-
-  const payloads: EmailPayload[] = recipients.map((recipient) => {
-    const personalizedMessage = interpolate(message, recipient);
-    return {
-      from,
-      to: recipient.email,
-      subject,
-      react:
-        basis === "PalmTechniq"
-          ? PtHolidayMail({ message: personalizedMessage, image })
-          : ISCEHolidayMail({ message: personalizedMessage, image }),
-    };
-  });
-
-  return sendBatch(resend, payloads);
-};
-
-/** Tracked variant — used by the API route to avoid server action timeout. */
-export const sendBulkEmailTracked = async (
-  recipients: BatchRecipient[],
-  subject: string,
-  basis: IBasis,
-  message: string,
-  image: string,
-): Promise<BatchResult> => {
-  const resend = getResendInstance(basis);
-  const from = getSenderAddress(basis);
-
-  const payloads: EmailPayload[] = recipients.map((recipient) => {
-    const personalizedMessage = interpolate(message, recipient);
-    return {
-      from,
-      to: recipient.email,
-      subject,
-      react:
-        basis === "PalmTechniq"
-          ? PtHolidayMail({ message: personalizedMessage, image })
-          : ISCEHolidayMail({ message: personalizedMessage, image }),
-    };
-  });
-
-  return sendBatchTracked(resend, payloads);
-};
+/**
+ * Legacy shim for the holiday send flow.
+ *
+ * Everything except the `IBasis` type re-export was dead code — the old
+ * `sendBulkEmail` / `sendBulkEmailTracked` helpers had no remaining callers
+ * since campaigns moved through `createCampaignWithBatches` ->
+ * `runBatchDispatch` -> `renderAndSendBatch`. They imported
+ * `getResendInstance` / `getSenderAddress` from ../shared, which in turn
+ * constructed `new Resend(process.env.*)` at module load — crashing the Vercel
+ * build whenever those env vars were missing.
+ *
+ * The form page at app/(mail-form)/holiday/page.tsx still imports `IBasis`
+ * from here, so this file stays as a thin re-export instead of being deleted
+ * outright.
+ */
+export type { IBasis } from "../shared";
