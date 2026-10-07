@@ -4,11 +4,11 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev -p 9999",
-    "build": "pnpm exec prisma generate && pnpm exec next build",
+		"build": "pnpm exec prisma generate && pnpm exec next build",
 		"start": "next start",
 		"lint": "next lint",
 		"email": "email dev --port 4000",
-    "postinstall": "prisma generate"
+		"postinstall": "prisma generate"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1038.0",
@@ -117,5 +117,8 @@
 			"prisma",
 			"unrs-resolver"
 		]
+	},
+	"engines": {
+		"node": ">=22.0.0"
 	}
 }

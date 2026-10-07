@@ -11,8 +11,8 @@
 #   - tsc --noEmit      (catches type errors Next's build also catches, but
 #                        earlier and with better error locations)
 #   - pnpm build        (the actual next build — the only step that catches
-#                        page-data collection failures like the /_document bug
-#                        on Node 22)
+#                        page-data collection failures like the /_document
+#                        bug that modern Node surfaces as fatal)
 #
 # What's NOT checked:
 #   - Runtime failures that only show up after deploy (bad env var, upstream
@@ -47,9 +47,10 @@ jobs:
       # routes with `dynamic = "force-dynamic"` skip static generation, and the
       # ones that don't never dereference the Prisma client at module load.
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
-      # Match Vercel's build-time Node runtime so CI reproduces the exact
-      # unhandled-rejection semantics that broke the /_document check.
-      NODE_VERSION: "22"
+      # Match Vercel's build-time Node runtime so CI catches what Vercel
+      # catches. Node 20 is end-of-life and Vercel now requires 22 or newer;
+      # we track whichever version Vercel is currently serving as default.
+      NODE_VERSION: "24"
 
     steps:
       - uses: actions/checkout@v4

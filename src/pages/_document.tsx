@@ -3,7 +3,7 @@
  *
  * Next's build-time `Collecting page data` phase calls `hasCustomGetInitialProps`
  * for `_document` even on pure App Router projects. The require throws
- * `PageNotFoundError`, which Node 22 surfaces as an unhandled rejection and
+ * `PageNotFoundError`, which modern Node surfaces as an unhandled rejection and
  * kills the build. This empty stub satisfies the require. App Router pages
  * continue to serve as before, and no `_app.tsx` stub is added — adding one
  * flips Next's type inference into hybrid mode and breaks App Router typing
